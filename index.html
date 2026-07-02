@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 독서 리듬 테스트</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #faf9f6;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+    color: #2c2b28;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .screen {
+    animation: fadeIn 0.45s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── 카드 ── */
+  .card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 0.5px solid #e0ddd6;
+    padding: 2rem 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  /* ── 타이포그래피 ── */
+  h1 { font-size: 22px; font-weight: 500; line-height: 1.4; color: #2c2b28; }
+  h2 { font-size: 18px; font-weight: 500; line-height: 1.5; color: #2c2b28; }
+  h3 { font-size: 16px; font-weight: 500; color: #2c2b28; }
+  p  { font-size: 15px; color: #6b6559; line-height: 1.8; }
+
+  .small { font-size: 13px; color: #9e9a92; }
+  .label { font-size: 12px; color: #8b9e8a; font-weight: 500; letter-spacing: 0.5px; }
+
+  /* ── 버튼 ── */
+  .btn {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    background: #ffffff;
+    border: 0.5px solid #c8c4bb;
+    border-radius: 28px;
+    padding: 13px 28px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #2c2b28;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.1s;
+    font-family: inherit;
+  }
+  .btn:hover  { background: #f5f3ef; border-color: #aaa49b; }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: #4a5568;
+    color: #ffffff;
+    border-color: #4a5568;
+  }
+  .btn-primary:hover { background: #2d3748; border-color: #2d3748; }
+
+  .btn-primary:disabled {
+    background: #cfd3da;
+    border-color: #cfd3da;
+    cursor: not-allowed;
+  }
+
+  /* ── 본문 텍스트 ── */
+  .reading-body {
+    font-size: 16px;
+    line-height: 2.1;
+    color: #3a3833;
+    white-space: pre-line;
+    margin-bottom: 2rem;
+  }
+
+  /* ── 선택지 버튼 ── */
+  .option-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #faf9f6;
+    border: 0.5px solid #ddd9d0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #2c2b28;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .option-btn:hover  { background: #f0ede6; border-color: #b5b0a6; }
+  .option-btn:active { transform: scale(0.99); }
+  .option-label { color: #9e9a92; font-size: 13px; margin-right: 10px; }
+
+  .option-btn.selected {
+    background: #f0f5ef;
+    border-color: #8b9e8a;
+  }
+  .option-btn.selected .option-label {
+    color: #8b9e8a;
+  }
+
+  .confirm-wrap {
+    margin-top: 1.5rem;
+    min-height: 48px;
+  }
+
+  /* ── 진행률 바 ── */
+  .progress-wrap {
+    background: #ece9e2;
+    border-radius: 8px;
+    height: 4px;
+    margin-bottom: 1.75rem;
+  }
+  .progress-fill {
+    background: #8b9e8a;
+    border-radius: 8px;
+    height: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── 분석 중 ── */
+  .dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 1.5rem; }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #8b9e8a;
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: scale(0.7); opacity: 0.5; }
+    40%          { transform: scale(1);   opacity: 1; }
+  }
+  .step-msg {
+    font-size: 14px;
+    color: #9e9a92;
+    margin-top: 8px;
+    min-height: 22px;
+    animation: fadeIn 0.35s ease;
+  }
+
+  /* ── 태그 ── */
+  .tag {
+    display: inline-block;
+    background: #f0ede6;
+    color: #6b6559;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    margin: 4px 4px 4px 0;
+  }
+
+  /* ── 독서 로그 ── */
+  .log-block { margin-bottom: 1.25rem; }
+  .log-block:last-child { margin-bottom: 0; }
+  .log-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #6b6559;
+    padding: 8px 0;
+    border-bottom: 0.5px solid #f0ede6;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .log-text-label { color: #2c2b28; font-weight: 500; }
+
+  .analysis-para {
+    font-size: 14.5px;
+    line-height: 1.95;
+    color: #6b6559;
+    margin-bottom: 1rem;
+  }
+  .analysis-para:last-child { margin-bottom: 0; }
+  .analysis-para.summary {
+    color: #2c2b28;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    border-top: 0.5px solid #e8e4dc;
+  }
+
+  /* ── 책갈피 카드 ── */
+  .letter-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 0.5px solid #ddd9d0;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 10px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .letter-card.opened {
+    border-color: #8b9e8a;
+    background: #f9fbf8;
+  }
+
+  .letter-open-btn {
+    background: #f5f3ef;
+    border: 0.5px solid #ddd9d0;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #6b6559;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.15s;
+  }
+  .letter-open-btn:hover { background: #e8e4dc; }
+  .letter-open-btn.done {
+    color: #8b9e8a;
+    cursor: default;
+    background: #f0f5ef;
+    border-color: #b8cbb6;
+  }
+
+  /* ── 모달 ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 1.5rem;
+  }
+  .modal-backdrop.active { display: flex; animation: fadeIn 0.25s ease; }
+
+  .modal-box {
+    background: #fffdf9;
+    border-radius: 18px;
+    border: 0.5px solid #ddd9d0;
+    padding: 2rem 1.75rem;
+    max-width: 480px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-from  { font-size: 12px; color: #9e9a92; margin-bottom: 4px; }
+  .modal-title {
+    font-size: 16px; font-weight: 500; color: #2c2b28;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 0.5px solid #e8e4dc;
+  }
+  .modal-body {
+    font-size: 15px; color: #6b6559; line-height: 1.9;
+    white-space: pre-line;
+  }
+  .modal-close {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 10px;
+    border-radius: 20px;
+    border: 0.5px solid #c8c4bb;
+    background: #ffffff;
+    font-size: 14px;
+    font-family: inherit;
+    color: #6b6559;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: #f0ede6; }
+
+  /* ── 엔딩 박스 ── */
+  .ending-box {
+    background: #f9fbf8;
+    border: 0.5px solid #b8cbb6;
+    border-radius: 16px;
+    padding: 2rem 1.75rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    animation: fadeIn 0.6s ease;
+  }
+  .ending-box p {
+    font-size: 15px;
+    line-height: 2;
+    color: #6b6559;
+  }
+  .ending-highlight {
+    font-weight: 500;
+    color: #2c2b28;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 0.5px solid #e0ddd6;
+    margin: 1.5rem 0;
+  }
+
+  /* ── 반응형 ── */
+  @media (max-width: 480px) {
+    body { padding: 1.25rem 0.75rem 3rem; }
+    .card { padding: 1.5rem 1.25rem; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 17px; }
+    .modal-box { padding: 1.5rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="root"></div>
+</div>
+
+<div id="modal-container"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  ✏️  수정 가능한 데이터 영역
+// ══════════════════════════════════════════════
+
+// 글 데이터
+const READING_ITEMS = [
+  {
+    label: "TEXT 01",
+    title: "첫 번째 글",
+    body: `창가에 둔 컵에는 어제 마시다 남긴 차가 반쯤 식어 있었다.
+누군가 급하게 나간 듯 의자는 조금 뒤로 밀려 있었고,
+책상 위에는 접힌 영수증 하나가 조용히 놓여 있었다.
+
+방 안에는 아무 일도 일어나지 않은 것처럼 보였지만,
+이상하게도 그 자리는 방금 전까지 누군가의 마음이 머물다 간 것 같았다.`,
+    question: "방금 글을 읽을 때, 가장 먼저 머릿속에 그려진 것은?",
+    options: [
+      { label: "A", text: "조용하고 비어 있는 방의 분위기", type: "B", short: "방의 분위기", trait: "장면 전체의 공기와 분위기를 먼저 받아들이는" },
+      { label: "B", text: "책상 위에 놓인 사물들의 모습", type: "C", short: "사물의 디테일", trait: "구체적인 사물과 단서에 먼저 주의를 두는" },
+      { label: "C", text: "방을 떠난 사람이 어떤 상황이었는지", type: "D", short: "떠난 사람의 상황", trait: "보이지 않는 이야기를 추론하려는" },
+      { label: "D", text: "누군가의 마음이 남아 있는 듯한 느낌", type: "B", short: "마음의 여운", trait: "장면보다 정서적 여운을 먼저 받아들이는" }
+    ]
+  },
+  {
+    label: "TEXT 02",
+    title: "두 번째 글",
+    body: `어떤 사람은 책을 처음부터 끝까지 순서대로 읽지만,
+어떤 사람은 목차를 먼저 보고 필요한 부분을 골라 읽는다.
+또 어떤 사람은 문장보다 전체 흐름을 먼저 파악하고,
+어떤 사람은 마음에 걸리는 표현 하나를 오래 들여다본다.
+
+독서 방식은 단순히 속도의 문제가 아니라,
+정보를 받아들이는 순서와 주의를 두는 위치의 차이에 가깝다.`,
+    question: "이 글의 핵심에 가장 가까운 것은?",
+    options: [
+      { label: "A", text: "책은 처음부터 끝까지 순서대로 읽어야 한다", type: "A", short: "등장한 하나의 독서법", trait: "핵심 주장보다 눈에 띄는 진술에 먼저 반응하는" },
+      { label: "B", text: "독서 방식은 속도보다 받아들이는 방식의 차이다", type: "C", short: "글의 중심 주장", trait: "여러 예시를 하나의 개념으로 묶어 이해하는" },
+      { label: "C", text: "글을 빨리 읽는 사람이 내용을 더 잘 이해한다", type: "A", short: "'속도'라는 키워드", trait: "특정 단어를 중심으로 내용을 재구성하는" },
+      { label: "D", text: "목차를 먼저 보는 독서법이 가장 좋은 방법이다", type: "C", short: "필요한 부분을 골라 읽는 방식", trait: "정보를 효율적으로 찾는 방식에 끌리는" }
+    ]
+  },
+  {
+    label: "TEXT 03",
+    title: "세 번째 글",
+    body: `그는 책장을 덮고도 한참 동안 마지막 문장을 바라보았다.
+이야기는 끝났지만, 이상하게도 끝난 것 같지 않았다.
+
+책 속의 인물이 어디론가 사라진 것이 아니라,
+자신 안으로 조용히 걸어 들어온 것 같았다.`,
+    question: "이 글을 읽고 난 뒤, 가장 가까운 느낌은?",
+    options: [
+      { label: "A", text: "좋은 이야기는 읽은 뒤에도 마음에 남는다", type: "B", short: "정서적 잔상", trait: "이야기를 감정적 잔상으로 기억하는" },
+      { label: "B", text: "주인공의 결말이 명확하지 않아 답답하다", type: "C", short: "명확한 결말", trait: "열린 해석보다 분명한 서사를 선호하는" },
+      { label: "C", text: "마지막 문장의 의미를 정확히 분석하고 싶다", type: "D", short: "문장의 의미 분석", trait: "문장의 의도를 분석하려는" },
+      { label: "D", text: "책을 덮은 사람의 상황이 더 궁금하다", type: "D", short: "장면 이후의 서사", trait: "글 밖의 맥락과 이후 이야기를 상상하는" }
+    ]
+  }
+];
+
+// 결과 유형 (A/B/C/D)
+const RESULTS = {
+  A: {
+    title: "흐름을 빠르게 잡는 스캐너형",
+    desc: `당신은 글을 읽을 때 문장 하나하나보다 전체 흐름을 먼저 잡는 사람입니다.
+
+읽는 속도가 빠른 편이고,
+글이 어디로 향하고 있는지 비교적 빠르게 감지합니다.
+
+긴 글을 읽을 때도 부담을 덜 느끼며,
+필요한 정보나 핵심 장면을 빠르게 찾아내는 편이에요.
+
+다만 가끔은 문장 사이의 작은 뉘앙스나 감정선을 지나칠 수 있습니다.`,
+    tags: ["#흐름파악", "#빠른독서", "#핵심감지", "#전체보기"]
+  },
+  B: {
+    title: "문장에 오래 머무는 몰입형",
+    desc: `당신은 글을 빠르게 넘기기보다,
+문장이 남기는 분위기와 감정에 오래 머무는 사람입니다.
+
+읽는 속도는 조금 느릴 수 있지만,
+그만큼 글의 장면과 여운을 깊게 받아들이는 편이에요.
+
+소설, 에세이, 시처럼 분위기와 감정이 중요한 글에서
+당신의 독서 방식은 더 잘 드러납니다.
+
+당신에게 독서는 정보를 얻는 일이라기보다,
+한 장면 안에 잠시 머무는 일에 가깝습니다.`,
+    tags: ["#몰입형", "#감정독서", "#문장수집", "#천천히읽기"]
+  },
+  C: {
+    title: "핵심을 정리하는 구조형",
+    desc: `당신은 글을 읽을 때 이 글이 결국 무엇을 말하는지 먼저 파악하려는 사람입니다.
+
+문장의 분위기보다 핵심 내용, 정보의 순서,
+글의 구조를 중요하게 보는 편이에요.
+
+정보형 글, 기사, 리포트처럼 명확한 내용을 담은 글을 읽을 때 강점이 있습니다.
+
+읽은 내용을 정리하거나 다른 사람에게 설명하는 일에도 익숙한 편입니다.`,
+    tags: ["#정리형", "#핵심파악", "#구조독서", "#요약잘함"]
+  },
+  D: {
+    title: "의미를 파고드는 해석형",
+    desc: `당신은 글을 읽고 나서 이 문장이 왜 이렇게 쓰였는지,
+그 뒤에 어떤 의미가 숨어 있는지 생각하는 사람입니다.
+
+단순히 내용을 이해하는 것보다,
+문장 안에 남은 여백과 상징을 따라가는 데 관심이 많아요.
+
+문학, 비평, 철학적 글처럼 여러 해석이 가능한 글을 읽을 때
+당신의 독서 방식은 더 깊어집니다.
+
+같은 문장을 읽어도 남들이 지나친 의미를 발견하는 편입니다.`,
+    tags: ["#해석형", "#깊이읽기", "#의미탐색", "#생각많음"]
+  }
+};
+
+// 책갈피 데이터 (여기서 작성자, 제목, 내용 수정 가능)
+const BOOKMARKS = [
+  {
+    from: "김시은",
+    cardTitle: "Bookmark 01",
+    cardSub: "첫 번째 책갈피",
+    cardDesc: "당신에게 남겨진 첫 번째 책갈피입니다.",
+    modalTitle: "Bookmark 01. 첫 번째 책갈피",
+    body: `채린아 생일 축하해! `
+  },
+  {
+    from: "양체윤",
+    cardTitle: "Bookmark 02",
+    cardSub: "두 번째 책갈피",
+    cardDesc: "당신에게 남겨진 두 번째 책갈피입니다.",
+    modalTitle: "Bookmark 02. 두 번째 책갈피",
+    body: `여기에 두 번째 책갈피 내용을 입력하세요.`
+  }
+];
+
+const SPEED_LABEL_KR = { fast: "빠른 편", normal: "보통", slow: "천천히 읽는 편" };
+const SPEED_ADV_KR   = { fast: "비교적 빠르게", normal: "무난한 속도로", slow: "비교적 천천히" };
+
+// ══════════════════════════════════════════════
+//  앱 상태
+// ══════════════════════════════════════════════
+
+let state = {
+  page: 'start',            // start | reading | question | analyzing | result
+  currentText: 0,
+  answers: [],               // 각 글의 최종 선택 type ('A'|'B'|'C'|'D') 누적 배열
+  readingStartTime: null,
+  answerStartTime: null,
+  readingMetrics: [],
+  answerMetrics: [],
+  selectedOption: null,
+  currentChoicePath: [],
+  resultType: null,
+  bookmarksOpened: [false, false]
+};
+
+const root = document.getElementById('root');
+const modalContainer = document.getElementById('modal-container');
+
+// ── 렌더링 진입점 ──
+function render() {
+  if      (state.page === 'start')     renderStart();
+  else if (state.page === 'reading')   renderReading();
+  else if (state.page === 'question')  renderQuestion();
+  else if (state.page === 'analyzing') renderAnalyzing();
+  else if (state.page === 'result')    renderResult();
+}
+
+// ══════════════════════════════════════════════
+//  시작 화면
+// ══════════════════════════════════════════════
+function renderStart() {
+  root.innerHTML = `
+    <div class="screen">
+      <div class="card" style="text-align:center; padding: 2.75rem 2rem;">
+        <p class="small" style="margin-bottom: 1rem; letter-spacing: 0.6px;">READING RHYTHM TEST</p>
+        <h1 style="margin-bottom: 0.5rem;">나의 독서 리듬 테스트</h1>
+        <p style="font-size: 14px; color: #9e9a92; margin-bottom: 0;">짧은 글을 읽고, 당신이 문장을 받아들이는 방식을 확인해보세요.</p>
+        <hr class="divider">
+        <p style="font-size: 15px; line-height: 2; margin-bottom: 2rem;">
+          사람마다 글을 읽는 방식은 조금씩 다릅니다.<br><br>
+          빠르게 흐름을 잡는 사람도 있고,<br>
+          한 문장에 오래 머무는 사람도 있고,<br>
+          장면을 상상하며 읽는 사람도 있습니다.<br><br>
+          짧은 글 몇 개를 읽고,<br>
+          당신의 독서 리듬을 확인해보세요.
+        </p>
+        <button class="btn btn-primary" onclick="startTest()">테스트 시작하기</button>
+      </div>
+      <p class="small" style="text-align:center; margin-top: 1rem;">총 3개의 짧은 글 · 약 3분 소요</p>
+    </div>
+  `;
+}
+
+function startTest() {
+  state.page = 'reading';
+  state.currentText = 0;
+  state.answers = [];
+  state.readingMetrics = [];
+  state.answerMetrics = [];
+  state.selectedOption = null;
+  state.currentChoicePath = [];
+  state.resultType = null;
+  render();
+}
+
+// ══════════════════════════════════════════════
+//  글 읽기 화면
+// ══════════════════════════════════════════════
+function renderReading() {
+  const item = READING_ITEMS[state.currentText];
+  const total = READING_ITEMS.length;
+  const pct = Math.round(state.currentText / total * 100);
+
+  // 이 글 읽기를 시작하는 시점의 시간을 내부적으로 기록 (화면에는 표시하지 않음)
+  state.readingStartTime = Date.now();
+
+  root.innerHTML = `
+    <div class="screen">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span class="small">${item.label} / ${total}</span>
+          <span class="small">${pct}% 완료</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-fill" style="width: ${pct}%"></div>
+        </div>
+        <p class="label" style="margin-bottom: 0.5rem;">${item.label}</p>
+        <h2 style="margin-bottom: 1.25rem;">${item.title}</h2>
+        <p class="reading-body">${item.body}</p>
+        <button class="btn btn-primary" onclick="finishReading()">다 읽었어요</button>
+      </div>
+    </div>
+  `;
+}
+
+function finishReading() {
+  const item = READING_ITEMS[state.currentText];
+  const now = Date.now();
+  const readingTimeMs = Math.max(0, now - state.readingStartTime);
+  const readingTimeSec = Math.round((readingTimeMs / 1000) * 10) / 10;
+  const charCount = item.body.replace(/\s/g, '').length;
+  const charsPerSecond = readingTimeSec > 0 ? Math.round((charCount / readingTimeSec) * 100) / 100 : 0;
+
+  let speedLevel = 'normal';
+  if (charsPerSecond >= 8.5) speedLevel = 'fast';
+  else if (charsPerSecond <= 4.5) speedLevel = 'slow';
+
+  state.readingMetrics.push({
+    textIndex: state.currentText,
+    textLabel: item.label,
+    charCount,
+    readingTimeMs,
+    readingTimeSec,
+    charsPerSecond,
+    speedLevel
+  });
+
+  // 질문 화면으로 이동, 고민 시간 측정 시작
+  state.selectedOption = null;
+  state.currentChoicePath = [];
+  state.page = 'question';
+  state.answerStartTime = Date.now();
+  render();
+}
+
+// ══════════════════════════════════════════════
+//  질문 화면 (반응 질문)
+// ══════════════════════════════════════════════
+function renderQuestion() {
+  const item = READING_ITEMS[state.currentText];
+  const total = READING_ITEMS.length;
+  const pct = Math.round(((state.currentText + 0.5) / total) * 100);
+
+  root.innerHTML = `
+    <div class="screen">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span class="small">${item.label} / ${total}</span>
+          <span class="small">${pct}% 완료</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-fill" style="width: ${pct}%"></div>
+        </div>
+        <h2 style="margin-bottom: 1.5rem;">${item.question}</h2>
+        ${item.options.map(o => `
+          <button class="option-btn ${state.selectedOption === o.label ? 'selected' : ''}" onclick="selectOption('${o.label}')">
+            <span class="option-label">${o.label}</span>${o.text}
+          </button>
+        `).join('')}
+        <div class="confirm-wrap">
+          ${state.selectedOption
+            ? `<button class="btn btn-primary" onclick="confirmChoice()">이 선택으로 확정하기</button>`
+            : ``
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectOption(label) {
+  state.selectedOption = label;
+  const path = state.currentChoicePath;
+  if (path.length === 0 || path[path.length - 1] !== label) {
+    path.push(label);
+  }
+  renderQuestion();
+}
+
+function confirmChoice() {
+  if (!state.selectedOption) return;
+
+  const item = READING_ITEMS[state.currentText];
+  const now = Date.now();
+  const answerTimeMs = Math.max(0, now - state.answerStartTime);
+  const answerTimeSec = Math.round((answerTimeMs / 1000) * 10) / 10;
+
+  const path = state.currentChoicePath;
+  const firstChoice = path[0];
+  const finalChoice = state.selectedOption;
+  const changedCount = path.length - 1;
+
+  const firstOpt = item.options.find(o => o.label === firstChoice);
+  const finalOpt = item.options.find(o => o.label === finalChoice);
+
+  state.answerMetrics.push({
+    textIndex: state.currentText,
+    question: item.question,
+    firstChoice,
+    finalChoice,
+    firstChoiceText: firstOpt.text,
+    finalChoiceText: finalOpt.text,
+    changedCount,
+    choicePath: path.slice(),
+    answerTimeMs,
+    answerTimeSec
+  });
+
+  state.answers.push(finalOpt.type);
+
+  if (state.currentText < READING_ITEMS.length - 1) {
+    state.currentText++;
+    state.page = 'reading';
+    root.style.opacity = '0';
+    setTimeout(() => {
+      root.style.opacity = '1';
+      render();
+    }, 160);
+  } else {
+    state.resultType = calcResult();
+    state.page = 'analyzing';
+    render();
+    runAnalyzing();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  점수 계산 (선택지 점수 + 읽기 행동 보정)
+// ══════════════════════════════════════════════
+function calcResult() {
+  const count = { A: 0, B: 0, C: 0, D: 0 };
+
+  // 기본: 각 글의 최종 선택 type 누적
+  state.answers.forEach(t => count[t]++);
+
+  // 읽기 속도 보정
+  const fastCount = state.readingMetrics.filter(m => m.speedLevel === 'fast').length;
+  const slowCount = state.readingMetrics.filter(m => m.speedLevel === 'slow').length;
+  if (fastCount >= 2) count.A += 1;
+  if (slowCount >= 2) count.B += 1;
+
+  // 글 유형별 보정
+  const t02 = state.answerMetrics[1];
+  if (t02) {
+    if (t02.finalChoice === 'B') {
+      count.C += 1;
+      if (t02.answerTimeSec < 6) count.C += 1;
+    }
+  }
+
+  const t03 = state.answerMetrics[2];
+  if (t03) {
+    if (t03.finalChoice === 'C' || t03.finalChoice === 'D') count.D += 1;
+    if (t03.answerTimeSec > 12 || t03.changedCount > 0) count.D += 1;
+  }
+
+  // 선택 과정 보정
+  const hasMultiChange = state.answerMetrics.some(m => m.changedCount >= 2);
+  if (hasMultiChange) count.D += 1;
+
+  const allQuickNoChange = state.answerMetrics.every(m => m.changedCount === 0) &&
+    (state.answerMetrics.reduce((s, m) => s + m.answerTimeSec, 0) / state.answerMetrics.length) < 6;
+  if (allQuickNoChange) {
+    if (fastCount >= slowCount) count.A += 1;
+    else count.C += 1;
+  }
+
+  const max = Math.max(...Object.values(count));
+  const winners = Object.keys(count).filter(k => count[k] === max);
+  if (winners.length === 1) return winners[0];
+
+  // 동점: 마지막 최종 선택 답변의 유형 우선
+  for (let i = state.answers.length - 1; i >= 0; i--) {
+    if (winners.includes(state.answers[i])) return state.answers[i];
+  }
+  return winners[0];
+}
+
+// ══════════════════════════════════════════════
+//  분석 중 화면
+// ══════════════════════════════════════════════
+const ANALYZE_STEPS = [
+  "읽은 시간 계산 중",
+  "문장에 머문 지점 확인 중",
+  "선택을 고민한 흔적 분석 중",
+  "독서 리듬 정리 중"
+];
+
+function renderAnalyzing() {
+  root.innerHTML = `
+    <div class="screen">
+      <div class="card" style="text-align:center; padding: 3.5rem 2rem;">
+        <div class="dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <h2 style="margin-bottom: 0.5rem;">응답을 분석 중입니다…</h2>
+        <p id="step-msg" class="step-msg">&nbsp;</p>
+        <div id="done-area" style="display:none; margin-top: 2rem;">
+          <p style="margin-bottom: 1rem; font-size: 14px; color: #9e9a92;">분석이 완료되었습니다.</p>
+          <button class="btn btn-primary" onclick="goResult()">결과 확인하기</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function runAnalyzing() {
+  let i = 0;
+  const stepEl = document.getElementById('step-msg');
+  const doneEl = document.getElementById('done-area');
+
+  function next() {
+    if (i < ANALYZE_STEPS.length) {
+      if (stepEl) {
+        stepEl.style.animation = 'none';
+        void stepEl.offsetWidth; // reflow
+        stepEl.style.animation = 'fadeIn 0.35s ease';
+        stepEl.textContent = ANALYZE_STEPS[i];
+      }
+      i++;
+      setTimeout(next, 720);
+    } else {
+      setTimeout(() => { if (doneEl) doneEl.style.display = 'block'; }, 400);
+    }
+  }
+  setTimeout(next, 400);
+}
+
+function goResult() {
+  state.page = 'result';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════════════
+//  독서 로그 분석 (행동 로그 → 독서 성향 언어)
+// ══════════════════════════════════════════════
+function choicePathLabel(m) {
+  if (m.changedCount === 0) {
+    return `${m.finalChoice}로 바로 확정`;
+  }
+  return `${m.choicePath.join(' → ')}로 변경`;
+}
+
+function buildReadingAnalysis() {
+  const paras = [];
+
+  // 1) 읽는 리듬 분석
+  paras.push(buildRhythmParagraph());
+
+  // 2) 선택 이동 분석
+  paras.push(...buildChoiceShiftParagraphs());
+
+  // 3) 글 유형별 반응 분석
+  READING_ITEMS.forEach((item, idx) => {
+    paras.push(buildTextReactionParagraph(idx));
+  });
+
+  // 4) 최종 독서 성향 요약
+  paras.push({ text: buildSummaryParagraph(), summary: true });
+
+  return paras;
+}
+
+function buildRhythmParagraph() {
+  const metrics = state.readingMetrics;
+  const levels = metrics.map(m => m.speedLevel);
+  const allSame = levels.every(l => l === levels[0]);
+
+  if (allSame) {
+    const kr = SPEED_LABEL_KR[levels[0]];
+    return { text: `세 개의 글 모두 비슷한 리듬으로 읽었습니다. 전체적으로 ${kr} 속도를 유지한 것으로 보아, 글의 종류와 상관없이 안정적인 속도로 문장을 받아들이는 편입니다.` };
+  }
+
+  let fastest = metrics[0], slowest = metrics[0];
+  metrics.forEach(m => {
+    if (m.charsPerSecond > fastest.charsPerSecond) fastest = m;
+    if (m.charsPerSecond < slowest.charsPerSecond) slowest = m;
+  });
+
+  return {
+    text: `세 개의 글 중 ${fastest.textLabel}은(는) 비교적 빠르게 읽었고, ${slowest.textLabel}에서는 상대적으로 오래 머물렀습니다. 이는 장면의 윤곽은 빠르게 잡지만, 여운이 남는 문장 앞에서는 속도가 자연스럽게 느려지는 독서 리듬을 보여줍니다.`
+  };
+}
+
+function buildChoiceShiftParagraphs() {
+  const out = [];
+  const changed = [];
+  const unchanged = [];
+
+  state.answerMetrics.forEach(m => {
+    if (m.changedCount > 0) changed.push(m);
+    else unchanged.push(m);
+  });
+
+  changed.forEach(m => {
+    const item = READING_ITEMS[m.textIndex];
+    const firstOpt = item.options.find(o => o.label === m.firstChoice);
+    const finalOpt = item.options.find(o => o.label === m.finalChoice);
+    out.push({
+      text: `${item.label}에서 ${m.firstChoice}에서 ${m.finalChoice}로 선택이 바뀐 것은, ${firstOpt.trait} 반응에서 ${finalOpt.trait} 반응으로 시선이 이동한 것입니다.`
+    });
+  });
+
+  if (unchanged.length > 0) {
+    const labels = unchanged.map(m => READING_ITEMS[m.textIndex].label).join(', ');
+    out.push({
+      text: `${labels}처럼 선택지를 바꾸지 않고 바로 확정한 문항에서는, 글을 읽는 동안 이미 중심 인상을 비교적 분명하게 잡고 있었던 것으로 보입니다.`
+    });
+  }
+
+  return out;
+}
+
+function buildTextReactionParagraph(idx) {
+  const item = READING_ITEMS[idx];
+  const rm = state.readingMetrics[idx];
+  const am = state.answerMetrics[idx];
+  const finalOpt = item.options.find(o => o.label === am.finalChoice);
+  const speedAdv = SPEED_ADV_KR[rm.speedLevel];
+
+  if (idx === 0) {
+    const changedPart = am.changedCount > 0
+      ? `처음에는 ${item.options.find(o => o.label === am.firstChoice).short}을(를) 먼저 떠올렸다가, 최종적으로는 ${finalOpt.short}을(를) 선택했습니다`
+      : `${finalOpt.short}을(를) 선택했습니다`;
+    return { text: `${item.label}에서는 ${speedAdv} 글을 읽었고, ${changedPart}. 이는 ${finalOpt.trait} 독서 방식에 가깝습니다.` };
+  }
+
+  if (idx === 1) {
+    let text;
+    if (am.finalChoice === 'B') {
+      if (rm.speedLevel === 'fast') {
+        text = `정보형 글을 빠르게 읽고도 핵심 선택지를 골랐습니다. 이는 문장을 오래 붙잡기보다 구조를 빠르게 파악하고 중심 내용을 정리하는 독서 성향을 보여줍니다.`;
+      } else if (rm.speedLevel === 'slow') {
+        text = `정보형 글을 천천히 읽고 핵심 선택지를 골랐습니다. 이는 글의 논리를 놓치지 않기 위해 문장을 차분히 확인하며 구조를 정리하는 독서 방식입니다.`;
+      } else {
+        text = `정보형 글에서 핵심 선택지를 골랐습니다. 여러 예시를 따로따로 보기보다, 글이 말하려는 중심 문장으로 묶어 이해하는 편입니다.`;
+      }
+      if (am.answerTimeSec > 12) {
+        text += ` 답변 시간이 길었지만 최종적으로 핵심 선택지를 골랐다는 점에서, 바로 답을 고르기보다 여러 선택지를 비교한 뒤 글의 중심 주장으로 돌아오는 정리형 독서 방식이 드러납니다.`;
+      }
+    } else {
+      if (rm.speedLevel === 'fast') {
+        text = `정보형 글을 빠르게 읽었지만 핵심보다 ${finalOpt.short}에 반응했습니다. 이는 전체 구조보다 눈에 먼저 들어온 단서를 중심으로 글을 받아들이는 경향으로 볼 수 있습니다.`;
+      } else {
+        text = `정보형 글에서 ${finalOpt.short}에 주목했습니다. 이는 ${finalOpt.trait} 경향을 보여줍니다.`;
+      }
+    }
+    return { text };
+  }
+
+  // idx === 2
+  let text;
+  if (rm.speedLevel === 'slow' && (am.finalChoice === 'C' || am.finalChoice === 'D')) {
+    text = `${item.label}에서 읽는 시간이 길어지고 해석적인 선택지를 골랐습니다. 이는 여운이 남는 문장 앞에서 속도를 늦추고, 글이 직접 말하지 않은 의미를 따라가려는 독서 성향을 보여줍니다.`;
+  } else if (rm.speedLevel === 'fast' && am.finalChoice === 'A') {
+    text = `${item.label}을(를) 비교적 빠르게 읽었지만, 최종 반응은 감정적 여운에 가까웠습니다. 이는 문장을 오래 분석하기보다 전체 정서를 빠르게 감지하는 독서 방식으로 볼 수 있습니다.`;
+  } else if (am.finalChoice === 'B') {
+    text = `모호한 여운보다 명확한 결말을 필요로 하는 반응이 나타났습니다. 이는 열린 해석보다 이야기의 구조와 정보가 정리되는 독서 경험을 더 편안하게 느끼는 경향으로 볼 수 있습니다.`;
+  } else {
+    text = `${item.label}에서는 ${finalOpt.short}을(를) 선택했습니다. 이는 ${finalOpt.trait} 독서 성향으로 볼 수 있습니다.`;
+  }
+
+  if (am.answerTimeSec > 12 && am.finalChoice === 'C') {
+    text += ` 답변 시간이 길어진 뒤 마지막 문장의 의미를 분석하고 싶다고 선택한 것은, 문장을 하나의 감상으로 닫지 않고 그 표현이 가진 의미를 더 정확히 붙잡고 싶어 하는 해석형 독서 성향을 보여줍니다.`;
+  }
+
+  return { text };
+}
+
+function buildSummaryParagraph() {
+  const res = RESULTS[state.resultType];
+  const metrics = state.readingMetrics;
+  const fastCount = metrics.filter(m => m.speedLevel === 'fast').length;
+  const slowCount = metrics.filter(m => m.speedLevel === 'slow').length;
+  const anyChanged = state.answerMetrics.some(m => m.changedCount > 0);
+
+  let rhythmPart;
+  if (fastCount >= 2) rhythmPart = "장면과 흐름을 비교적 빠르게 잡는 편이면서도";
+  else if (slowCount >= 2) rhythmPart = "문장 하나하나에 시간을 들여 오래 머무는 편이면서도";
+  else rhythmPart = "글의 성격에 따라 읽는 속도를 자연스럽게 조절하면서도";
+
+  let shiftPart;
+  if (anyChanged) shiftPart = "특정 문장이 감정이나 의미를 남길 때는 그 앞에서 한 번 더 멈춰 해석을 조정하는";
+  else shiftPart = "처음 받은 인상을 끝까지 비교적 일관되게 밀고 가는";
+
+  return `종합하면, 당신은 글을 읽을 때 ${rhythmPart}, ${shiftPart} 독서 성향을 가지고 있습니다. 그래서 당신의 독서는 단순히 빠르거나 느린 것이 아니라, 글의 성격에 따라 시선의 속도와 깊이가 달라지는 리듬에 가깝습니다. 이는 결과 유형인 '${res.title}'과도 맞닿아 있습니다.`;
+}
+
+// ══════════════════════════════════════════════
+//  결과 화면
+// ══════════════════════════════════════════════
+function renderResult() {
+  const res = RESULTS[state.resultType];
+  const allOpened = state.bookmarksOpened.every(Boolean);
+  const analysis = buildReadingAnalysis();
+
+  root.innerHTML = `
+    <div class="screen">
+
+      <!-- 결과 카드 -->
+      <div class="card">
+        <p class="label" style="margin-bottom: 0.75rem;">당신의 독서 유형</p>
+        <h1 style="margin-bottom: 1.25rem;">${res.title}</h1>
+        <p style="white-space: pre-line; margin-bottom: 1.5rem;">${res.desc}</p>
+        <div>${res.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+
+      <!-- 나의 독서 로그 -->
+      <div class="card">
+        <p class="label" style="margin-bottom: 0.5rem;">READING LOG</p>
+        <h3 style="margin-bottom: 1.25rem;">나의 독서 로그</h3>
+
+        <div class="log-block">
+          <p class="small" style="margin-bottom: 6px;">읽은 속도</p>
+          ${state.readingMetrics.map(m => `
+            <div class="log-row">
+              <span class="log-text-label">${m.textLabel}</span>
+              <span>${SPEED_LABEL_KR[m.speedLevel]} · ${m.readingTimeSec}초</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="log-block">
+          <p class="small" style="margin-bottom: 6px;">선택 과정</p>
+          ${state.answerMetrics.map(m => `
+            <div class="log-row">
+              <span class="log-text-label">${READING_ITEMS[m.textIndex].label}</span>
+              <span>${choicePathLabel(m)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 나의 독서 로그 분석 -->
+      <div class="card">
+        <p class="label" style="margin-bottom: 0.5rem;">READING LOG ANALYSIS</p>
+        <h3 style="margin-bottom: 1.25rem;">나의 독서 로그 분석</h3>
+        ${analysis.map(p => `<p class="analysis-para ${p.summary ? 'summary' : ''}">${p.text}</p>`).join('')}
+      </div>
+
+      <!-- 책갈피 섹션 -->
+      <div class="card">
+        <p class="label" style="margin-bottom: 0.5rem;">ADDITIONAL ANALYSIS</p>
+        <h3 style="margin-bottom: 0.75rem;">추가 분석: 당신에게 도착한 책갈피</h3>
+        <p style="font-size: 14px; line-height: 1.9; margin-bottom: 1.5rem;">
+          테스트 결과와 함께,<br>
+          당신에게 남겨진 책갈피 2개가 도착했습니다.<br>
+          <span style="color: #9e9a92; font-size: 13px;">
+            각 책갈피에는 당신을 떠올리며 적은 짧은 기록이 담겨 있습니다.<br>
+            열람 전까지 작성자는 공개되지 않습니다.
+          </span>
+        </p>
+
+        ${BOOKMARKS.map((b, i) => `
+          <div class="letter-card ${state.bookmarksOpened[i] ? 'opened' : ''}" id="lc-${i}">
+            <p class="label" style="margin-bottom: 4px;">${b.cardTitle}</p>
+            <h3 style="margin-bottom: 4px;">${b.cardSub}</h3>
+            <p style="font-size: 14px;">${b.cardDesc}</p>
+            ${state.bookmarksOpened[i]
+              ? `<button class="letter-open-btn" onclick="openBookmark(${i})" style="color:#8b9e8a; border-color:#b8cbb6; background:#f0f5ef;">열람 완료 ✓ &nbsp;(다시 보기)</button>`
+              : `<button class="letter-open-btn" onclick="openBookmark(${i})">열람하기</button>`
+            }
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- 엔딩 박스 (모두 열람 시 표시) -->
+      ${allOpened ? `
+        <div class="ending-box">
+          <p class="label" style="color: #8b9e8a; margin-bottom: 0.75rem;">모든 책갈피를 확인했습니다.</p>
+          <p>
+            분석 결과,<br>
+            당신은 글을 읽는 방식만큼이나<br>
+            사람의 마음도 오래 들여다볼 줄 아는 사람입니다.<br><br>
+            사실 이 테스트의 목적은<br>
+            당신의 독서 성향을 정확히 맞히는 것보다,<br>
+            오늘을 그냥 지나치지 않기 위한 것이었습니다.<br><br>
+            <span class="ending-highlight">생일 축하해요.</span><br>
+            오늘은 어떤 문장보다<br>
+            당신이라는 사람이 더 중요한 날입니다.
+          </p>
+        </div>
+      ` : ''}
+
+      <!-- 하단 버튼 -->
+      <div style="text-align:center; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+        <button class="btn" onclick="resetTest()" style="width: auto; padding: 11px 32px; font-size: 14px;">처음으로 돌아가기</button>
+      </div>
+
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  책갈피 모달
+// ══════════════════════════════════════════════
+function openBookmark(idx) {
+  state.bookmarksOpened[idx] = true;
+  const b = BOOKMARKS[idx];
+
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop active" id="modal-bd" onclick="handleBackdropClick(event)">
+      <div class="modal-box">
+        <p class="modal-from">작성자: ${b.from}</p>
+        <p class="modal-title">${b.modalTitle}</p>
+        <p class="modal-body">${b.body}</p>
+        <button class="modal-close" onclick="closeBookmark(${idx})">닫기</button>
+      </div>
+    </div>
+  `;
+}
+
+function handleBackdropClick(e) {
+  if (e.target.id === 'modal-bd') {
+    closeBookmark(null);
+  }
+}
+
+function closeBookmark(idx) {
+  modalContainer.innerHTML = '';
+  render();
+  if (idx !== null) {
+    setTimeout(() => {
+      const card = document.getElementById(`lc-${idx}`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  초기화
+// ══════════════════════════════════════════════
+function resetTest() {
+  state = {
+    page: 'start',
+    currentText: 0,
+    answers: [],
+    readingStartTime: null,
+    answerStartTime: null,
+    readingMetrics: [],
+    answerMetrics: [],
+    selectedOption: null,
+    currentChoicePath: [],
+    resultType: null,
+    bookmarksOpened: [false, false]
+  };
+  modalContainer.innerHTML = '';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════════════
+//  뒤로가기 지원 (History API)
+// ══════════════════════════════════════════════
+
+function pushHistory(page) {
+  history.pushState({ page }, '', '');
+}
+
+window.addEventListener('popstate', function(e) {
+  // 모달이 열려 있으면 모달만 닫기
+  if (modalContainer.innerHTML !== '') {
+    modalContainer.innerHTML = '';
+    render();
+    return;
+  }
+  // 테스트 진행 중이었다면 처음 화면으로
+  if (state.page === 'reading' || state.page === 'question' || state.page === 'analyzing' || state.page === 'result') {
+    state.page = 'start';
+    state.currentText = 0;
+    state.answers = [];
+    state.readingMetrics = [];
+    state.answerMetrics = [];
+    state.selectedOption = null;
+    state.currentChoicePath = [];
+    state.resultType = null;
+    state.bookmarksOpened = [false, false];
+    modalContainer.innerHTML = '';
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+const _origStartTest = startTest;
+startTest = function() {
+  _origStartTest();
+  pushHistory('reading');
+};
+
+const _origGoResult = goResult;
+goResult = function() {
+  _origGoResult();
+  pushHistory('result');
+};
+
+// ── 시작 ──
+history.replaceState({ page: 'start' }, '', '');
+render();
+</script>
+</body>
+</html>
