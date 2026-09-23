@@ -1,0 +1,948 @@
+
+/* --------------------------------------------------------------------------
+   화면 셸 — 상태바 · 앱바 · 본문 · 입력줄 · 네비게이션을 세로로 쌓는다
+   -------------------------------------------------------------------------- */
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  /* 아트보드 고정 높이 — 대화가 길어져도 셸이 늘어나지 않고 위쪽이 잘린다 */
+  height: var(--screen-h);
+}
+
+/* 상태바·네비게이션은 절대 줄어들지 않는다 */
+.ask > .statusbar,
+.ask > .navbar {
+  flex: none;
+}
+
+/* 본문: 남는 높이를 모두 차지하고 넘치면 잘라낸다 (아트보드 고정 높이) */
+.ask__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 앱 셸(app.css)은 `.app__view > .screen > *` 에 flex:none 을 주고 네비게이션의
+   margin-top:auto 로 바닥을 맞춘다. 문의 화면은 입력줄이 네비게이션 바로 위에
+   붙어야 하므로 본문만 다시 늘어나게 되돌린다. */
+.app__view > .screen.ask > .ask__body {
+  flex: 1 1 auto;
+}
+
+/* 사용자가 문의를 쌓아 목록·타임라인이 아트보드보다 길어질 때만 세로 스크롤.
+   Figma 프레임 높이 안에 들어오는 동안은 보이는 결과가 같다. */
+.ask__body--scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.ask__body--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   앱바 — Figma: 375 x 52, 상태바(36) 아래 6px 지점에서 시작
+   -------------------------------------------------------------------------- */
+
+.appbar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin-top: 6px;
+  padding: 0 16px;
+}
+
+.appbar__back {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+}
+
+/* ui.appbar() 는 아이콘을 자식 span 으로 넣는다 — Figma 의 32x32 로 채운다 */
+.appbar__back .icon {
+  width: 32px;
+  height: 32px;
+}
+
+.appbar__title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   입력줄 — Figma: 335 x 40 알약, 화면 하단 네비게이션 위 24px
+   -------------------------------------------------------------------------- */
+
+.composer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 335px;
+  height: 40px;
+  margin: 0 auto 24px;
+  padding: 0 16px 0 15px;
+  border-radius: 50px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.composer__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--primary-black);
+  font-family: inherit;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.composer__field::placeholder {
+  color: var(--gray-1);
+  opacity: 1;
+}
+
+.composer__field:focus {
+  outline: none;
+}
+
+.composer__send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  color: var(--primary-blue);
+}
+
+.composer__send .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--primary-blue);
+}
+
+/* --------------------------------------------------------------------------
+   문의 시작 안내 — 로고 + 질문 (ask-2, ask-2-1 공통)
+   -------------------------------------------------------------------------- */
+
+.ask-intro {
+  padding: 63px var(--gutter) 0;
+}
+
+.ask-intro__logo {
+  width: 76px;
+  height: 80px;
+  color: var(--primary-blue);
+}
+
+.ask-intro__title {
+  margin-top: 24px;
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-intro__lede {
+  margin-top: 9px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   추천 질문 목록 (ask-2) — Figma: 335 x 42 카드, 16px 간격
+   -------------------------------------------------------------------------- */
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 0 var(--gutter);
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  text-align: left;
+}
+
+/* --------------------------------------------------------------------------
+   대화 (ask-2-1) — 아래쪽에 붙은 말풍선 흐름
+   -------------------------------------------------------------------------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 0 var(--gutter) 25px;
+  /* 대화가 길어지면 위로 스크롤한다. justify-content:flex-end 는 스크롤
+     컨테이너에서 넘친 윗부분에 닿을 수 없으므로 첫 항목의 auto 마진으로
+     아래쪽 정렬을 만든다. */
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.chat::-webkit-scrollbar {
+  display: none;
+}
+
+.chat > :first-child {
+  margin-top: auto;
+}
+
+/* 안내 블록과 첫 말풍선 사이는 24px */
+.chat > .ask-intro {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.chat__bubble {
+  width: fit-content;
+  max-width: 250px;
+  padding: 15px 18px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* 보호자 말풍선 — 오른쪽, 파란 배경 */
+.chat__bubble--me {
+  align-self: flex-end;
+  border-radius: var(--r-10) var(--r-10) 2px var(--r-10);
+  background: var(--primary-blue);
+  color: var(--white);
+}
+
+/* 병원 말풍선 — 왼쪽, 흰 배경 + 회색 테두리 */
+.chat__bubble--them {
+  align-self: flex-start;
+  border: 1px solid var(--gray-2);
+  border-radius: var(--r-10) var(--r-10) var(--r-10) 2px;
+  background: var(--white);
+  color: var(--primary-black);
+}
+
+/* 디자인상 이 한 곳만 간격이 33px */
+.chat__bubble--spaced {
+  margin-bottom: 17px;
+}
+
+.chat__cta {
+  display: grid;
+  place-items: center;
+  width: 208px;
+  height: 30px;
+  margin: 11px auto 0;
+  border: 1px solid var(--primary-blue);
+  border-radius: 5px;
+  box-shadow: var(--shadow-card);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   문의 홈 (ask-1)
+   -------------------------------------------------------------------------- */
+
+.ask-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 25px;
+  padding: 0 var(--gutter) 0 22px;
+}
+
+.ask-user__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-full);
+  background: var(--gray-4);
+}
+
+.ask-user__avatar svg {
+  width: 34px;
+  height: 36px;
+  color: var(--white);
+}
+
+.ask-user__identity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ask-user__name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-user__name small {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+}
+
+.ask-user__ward {
+  margin-top: 6px;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-user__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 문의 메뉴 — 비대칭 2단: 왼쪽 새 문의하기(161 x 173), 오른쪽 161 x 80 두 장 */
+
+.ask-entries {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 80px 80px;
+  gap: 13px 14px;
+  margin-top: 24px;
+  padding: 0 var(--gutter);
+}
+
+.ask-entry {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-10);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease;
+}
+
+.ask-entry:active {
+  opacity: 0.72;
+}
+
+/* 주 행동 — 서비스 블루, 두 줄을 차지 */
+.ask-entry--new {
+  grid-row: 1 / span 2;
+  justify-content: flex-end;
+  padding: 0 17px 20px;
+  background: var(--primary-blue);
+  color: var(--white);
+}
+
+.ask-entry__bubbles {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  width: 68px;
+  height: 66px;
+}
+
+.ask-entry__bubbles path {
+  stroke: var(--white);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+
+.ask-entry__bubble-back {
+  fill: none;
+}
+
+/* 앞 말풍선은 카드 색으로 채워 뒤 말풍선의 선을 가린다 */
+.ask-entry__bubble-front {
+  fill: var(--primary-blue);
+}
+
+.ask-entry__title {
+  display: block;
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-entry__text {
+  display: block;
+  margin-top: 13px;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* 보조 행동 — 연한 블루 */
+.ask-entry--sub {
+  justify-content: flex-end;
+  padding: 0 16px 17px 17px;
+  background: var(--blue-3);
+  color: var(--primary-blue);
+}
+
+.ask-entry--sub .ask-entry__title {
+  font-size: var(--fs-14);
+}
+
+.ask-entry__icon {
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  width: 38px;
+  height: 38px;
+  color: var(--primary-blue);
+}
+
+/* 최근 문의 기록 */
+
+.ask-recent {
+  padding: 36px var(--gutter) 24px;
+}
+
+.ask-recent__title {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-recent__month {
+  margin-top: 24px;
+  padding-left: 2px;
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.ask-recent__divider + .ask-recent__month {
+  margin-top: 20px;
+}
+
+.ask-recent__list {
+  margin-top: 16px;
+}
+
+.ask-recent__list > li + li {
+  margin-top: 19px;
+}
+
+.ask-recent__divider {
+  height: 0;
+  margin: 24px 0 0 -1px;
+  border: 0;
+  border-top: 0.5px solid var(--gray-2);
+}
+
+.ask-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding-left: 2px;
+  text-align: left;
+}
+
+.ask-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 3px;
+}
+
+.ask-row__title {
+  display: block;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-row__date {
+  display: block;
+  margin-top: 3px;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* 상태 배지 — Figma: 60 x 19 알약 */
+
+.status-pill {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 19px;
+  border-radius: var(--r-10);
+  background: var(--blue-3);
+  color: var(--primary-blue);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.status-pill--waiting {
+  background: var(--yellow-2);
+  color: var(--yellow-1);
+}
+
+.status-pill--done {
+  background: var(--green-2);
+  color: var(--green-1);
+}
+
+.ask-row .status-pill {
+  margin-top: 8px;
+}
+
+/* 문의 목록의 작은 아바타 — 시안의 연한 회색 원 */
+.ask-row .timeline__avatar {
+  background: var(--gray-3);
+}
+
+.ask-recent__more {
+  display: block;
+  margin-top: 26px;
+  color: var(--primary-blue);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   진행중인 문의 / 지난 문의기록 — #/ask/list?view=open | past
+   -------------------------------------------------------------------------- */
+
+.ask-phase {
+  padding: 10px var(--gutter) 28px;
+}
+
+.ask-phase__lede {
+  color: var(--gray-1);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.ask-phase .ask-recent__month {
+  margin-top: 22px;
+}
+
+.ask-phase .empty {
+  padding-top: 110px;
+}
+
+/* 진행중 — 아직 병원과 주고받는 과정이 남은 문의. 가벼운 흰 카드 */
+.ask-open-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.ask-open {
+  display: block;
+  padding: 16px 16px 15px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ask-open:active {
+  opacity: 0.72;
+}
+
+.ask-open__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ask-open__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.ask-open__date {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* 네 단계 — 점과 가는 선, 현재 단계만 블루 */
+.ask-stages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 16px;
+}
+
+.ask-stages::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 1px;
+  background: var(--gray-4);
+}
+
+.ask-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ask-stage__dot {
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--gray-2);
+  border-radius: var(--r-full);
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--white);
+}
+
+.ask-stage.is-done .ask-stage__dot {
+  border-color: var(--blue-2);
+  background: var(--blue-2);
+}
+
+.ask-stage.is-now .ask-stage__dot {
+  border-color: var(--primary-blue);
+  background: var(--primary-blue);
+  box-shadow: 0 0 0 3px var(--blue-4);
+}
+
+.ask-stage__label {
+  margin-top: 8px;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ask-stage.is-now .ask-stage__label {
+  color: var(--primary-blue);
+  font-weight: var(--fw-semibold);
+}
+
+.ask-open__update {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-3);
+  color: var(--primary-black);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.ask-open__update-label {
+  color: var(--gray-1);
+}
+
+/* 지난 기록 — 보관함 느낌: 제목도 한 톤 낮춘다 */
+.ask-row--past .ask-row__title {
+  color: var(--primary-black);
+  font-weight: var(--fw-medium);
+}
+
+/* 완료된 문의의 상세 — 보관 중인 기록임을 알리는 한 줄 */
+.ask-archive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 6px var(--gutter) 0;
+  padding: 9px 12px;
+  border-radius: var(--r-10);
+  background: var(--gray-3);
+  color: var(--gray-1);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.ask-archive .icon {
+  color: var(--gray-1);
+}
+
+/* --------------------------------------------------------------------------
+   문의 목록 (ask-3)
+   -------------------------------------------------------------------------- */
+
+.ask .chips {
+  margin-top: 16px;
+  padding: 0 var(--gutter) 0 21px;
+}
+
+/* 문의 목록 필터는 글자 폭에 맞춰 늘어난다 (Figma 47/56/66 x 25). */
+.ask .chip {
+  min-width: 0;
+  padding: 0 13px;
+  color: var(--primary-blue);
+}
+
+
+.ask-cards {
+  margin-top: 24px;
+  padding-bottom: 24px;
+}
+
+.ask-cards > li + li {
+  margin-top: 16px;
+}
+
+.ask-card {
+  display: flex;
+  gap: 9px;
+  width: 333px;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+
+.ask-card__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  background: var(--gray-3);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 1px;
+}
+
+.ask-card__head {
+  display: flex;
+  align-items: center;
+  height: 19px;
+}
+
+.ask-card__name {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.ask-card__sep {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin: 0 8px 0 10px;
+  border-radius: var(--r-full);
+  background: var(--gray-2);
+}
+
+.ask-card__date {
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.ask-card__head .status-pill {
+  margin-left: auto;
+}
+
+.ask-card__subject {
+  margin-top: 6px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.ask-card__action {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 30px;
+  margin-top: 12px;
+  border: 1px solid var(--primary-blue);
+  border-radius: 5px;
+  box-shadow: var(--shadow-card);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   문의 진행 타임라인 (ask-2-2, ask-3-1)
+   Figma: 세로 레일 x=41, 점 12px(진행) / 16px(현재·완료)
+   -------------------------------------------------------------------------- */
+
+.progress {
+  margin-top: 16px;
+  padding: 0 var(--gutter) 24px 66px;
+}
+
+/* ask-2-2 는 첫 스텝이 조금 아래에서 시작한다 */
+.progress--low {
+  margin-top: 38px;
+}
+
+.progress__step {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.progress__step:last-of-type {
+  padding-bottom: 0;
+}
+
+/* 다음 점까지 이어지는 레일 */
+.progress__step:not(:last-of-type)::before {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: 6px;
+  bottom: -7px;
+  width: 1px;
+  background: var(--primary-blue);
+}
+
+.progress__dot {
+  position: absolute;
+  left: -31px;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-full);
+  background: var(--primary-blue);
+}
+
+.progress__dot--lg {
+  display: grid;
+  place-items: center;
+  left: -33px;
+  top: -1px;
+  width: 16px;
+  height: 16px;
+}
+
+.progress__dot .icon {
+  width: 8px;
+  height: 6px;
+  color: var(--white);
+}
+
+.progress__label {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.progress__time {
+  margin-top: 6px;
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.progress__note {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-10);
+  background: var(--blue-4);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.progress__note--multi {
+  line-height: 1.4;
+}
+
+.progress__card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 59px;
+  margin-top: 12px;
+  padding: 0 15px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.progress__card-text {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.progress__cta {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 40px;
+  margin-top: 16px;
+  border: 1px solid var(--primary-blue);
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+}
+
+/* 아직 누를 수 없는 상태 */
+.progress__cta--muted {
+  border-color: var(--gray-2);
+  color: var(--gray-2);
+}

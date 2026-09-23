@@ -1,0 +1,627 @@
+
+/* --------------------------------------------------------------------------
+   화면 셸 — 본문은 잘리고 네비게이션은 항상 바닥에 붙는다.
+   (바텀시트가 766px 라 화면 밖으로 넘치므로 본문에서 클리핑한다.)
+   -------------------------------------------------------------------------- */
+
+.screen--together {
+  display: flex;
+  flex-direction: column;
+
+  /* 최신 함께ON 시안 (375 x 817)
+     헤더 0~114 · 사진 114~504 · 분류 바 447~488 · 목록 504~ */
+  --room-head-h: 114px;
+  --hero-h: 390px;
+  --filter-zone: 57px;   /* 분류 바(41) + 사진 하단 여백(16) */
+
+  /* 시트가 쉬는 두 위치 (시트 윗변 = 분류 바 윗변) */
+  --sheet-top: 447px;    /* = room-head-h + hero-h - filter-zone */
+  --sheet-top-open: 114px;
+}
+
+.together__body {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--white);
+}
+
+/* 앱 셸(app.css)은 모든 화면 자식을 flex:none 으로 고정하고 화면 자체를 스크롤시킨다.
+   이 화면은 본문이 시트를 잘라내야 하므로 본문만 늘어나고 화면은 스크롤하지 않는다. */
+.app__view > .screen--together > .together__body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.app__view > .screen.screen--together {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   상단 타이틀 — 김영숙님 병실 / 병동 / 알림
+   Figma: 787:1328 · 787:1329 · 787:1331 · 787:1333
+   -------------------------------------------------------------------------- */
+
+/* z-index 는 주지 않는다 — 쌓임 맥락을 만들면 날짜 목록이 시트 밑으로 들어간다.
+   대신 펼쳐진 시트가 헤더를 덮는다 (Figma 869:2424 그대로). */
+.room-head {
+  position: relative;
+  z-index: 10;          /* 날짜 목록이 사진·시트 위로 올라오도록 */
+  display: flex;
+  align-items: flex-start;
+  height: calc(var(--room-head-h) - var(--statusbar-h));
+  padding: 26px 21px 0 22px;
+  background: var(--white);
+}
+
+.room-head__identity {
+  position: relative;   /* 날짜 목록의 기준 */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.room-head__name {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-22);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+
+.room-head__name .icon {
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  color: var(--primary-black);
+  transform: translateY(1px);
+  transition: transform 0.2s ease;
+}
+
+/* 제목 전체가 날짜 전환 버튼이다 — 모양은 Figma 그대로. */
+.room-head__pick {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font: inherit;
+  line-height: inherit;
+}
+
+.room-head__pick[aria-expanded="true"] .icon {
+  transform: translateY(1px) rotate(180deg);
+}
+
+/* 날짜 목록 — 프로토타입 전용 어포던스 (Figma 에는 없는 화면) */
+.room-days {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  z-index: 20;
+  width: 236px;
+  padding: 6px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.room-days__item {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--r-10);
+  text-align: left;
+}
+
+.room-days__item[aria-selected="true"] {
+  background: var(--gray-3);
+}
+
+.room-days__date {
+  display: block;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.room-days__mood {
+  display: block;
+  margin-top: 5px;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.room-head__ward {
+  margin-top: 7px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.room-head__bell {
+  flex: none;
+  margin-top: 6px;
+  color: var(--primary-black);
+}
+
+/* --------------------------------------------------------------------------
+   병실 사진 — 화면 전체 폭 hero (최신 함께ON 시안: y 114 ~ 504)
+   원본 사진 모서리에 둥근 흰 테두리가 1~2px 구워져 있어 살짝 확대해 잘라낸다.
+   -------------------------------------------------------------------------- */
+
+.roomshot {
+  position: relative;
+  width: 100%;
+  height: var(--hero-h);
+  margin: 0;
+  overflow: hidden;
+  background: var(--gray-3);
+}
+
+/* 카메라 — 사진을 감싼 층 하나에만 translate + scale 을 준다 (JS 가 값 계산). */
+.roomshot__camera {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+  will-change: transform;
+}
+
+.roomshot__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  /* 시안 구도: 침대·스탠드가 조금 아래에 오도록 위쪽 기준으로 살짝 확대 */
+  transform: translateY(-3px) scale(1.07);
+  transform-origin: 50% 0;
+}
+
+/* 첫 그리기·새로고침 때는 저장된 시점에 바로 놓는다 */
+.roomshot.is-still .roomshot__camera,
+.roomshot.is-still .roomshot__spot {
+  transition: none;
+}
+
+/* --------------------------------------------------------------------------
+   오늘의 병실 카드 — 사진 위 반투명 카드 (x 20 ~ 355, y 130 ~ 197)
+   -------------------------------------------------------------------------- */
+
+.mood-card {
+  position: absolute;
+  top: 16px;
+  left: var(--gutter);
+  right: var(--gutter);
+  z-index: 1;
+  height: 67px;
+  padding: 16px 17px 0;
+  border-radius: 12px;
+  background: var(--white-glass);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.mood-card__label {
+  color: var(--primary-blue);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.mood-card__text {
+  margin-top: 9px;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   물방울 hotspot — 병실 공간으로 들어가는 입구
+   위치·크기는 data.roomDays[].hotspots 의 x / y / d 로 JS 가 놓는다.
+   안쪽 lens 는 같은 사진을 뒤 사진과 정확히 겹쳐 둔 것이라, 부풀 때 안쪽
+   장면만 조금 확대되어 "들여다보는" 느낌이 난다.
+   -------------------------------------------------------------------------- */
+
+.roomshot__spot {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  border: 1px dashed var(--white);
+  border-radius: var(--r-full);
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 100ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms ease 260ms;           /* 전경으로 돌아올 때 조금 늦게 다시 나타남 */
+}
+
+/* 물방울 표면 — Figma: radial gradient rgba(217,217,217,0) 49.04% → white 0.73 */
+.roomshot__spot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(217, 217, 217, 0) 49.04%,
+    rgba(255, 255, 255, 0.73) 100%
+  );
+  pointer-events: none;
+}
+
+.roomshot__lens {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.roomshot__scene {
+  position: absolute;
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 1 · 살짝 눌림 (100ms) */
+.roomshot__spot.is-pressed {
+  transform: scale(0.96);
+}
+
+/* 2 · 부풀어 오름 (150ms) — 안쪽 장면도 함께 확대 */
+.roomshot__spot.is-swelling {
+  transform: scale(1.12);
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.roomshot__spot.is-swelling .roomshot__scene,
+.roomshot__spot.is-popping .roomshot__scene {
+  transform: scale(1.07);
+}
+
+/* 3 · 톡 — 경계가 바깥으로 퍼지며 사라지고, 그 자리에서 카메라가 들어간다 */
+.roomshot__spot.is-popping {
+  transform: scale(1.55);
+  opacity: 0;
+  transition:
+    transform 180ms cubic-bezier(0.3, 0.7, 0.4, 1),
+    opacity 110ms linear;
+}
+
+/* 한 공간에 들어가 있는 동안 다른 물방울은 비켜 준다 */
+.roomshot.is-focused .roomshot__spot {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.roomshot.is-focused .roomshot__spot.is-popping {
+  transition:
+    transform 180ms cubic-bezier(0.3, 0.7, 0.4, 1),
+    opacity 110ms linear;
+}
+
+/* pop 효과 층 — 얇은 ring 한 번 + 아주 작은 점 4개 */
+.roomshot__burst {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.roomshot__ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--white);
+  border-radius: var(--r-full);
+  opacity: 0;
+  animation: roomshot-ring 320ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.roomshot__burst i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: var(--r-full);
+  background: var(--white);
+  opacity: 0;
+  animation: roomshot-drop 260ms cubic-bezier(0.2, 0.7, 0.3, 1) 20ms forwards;
+}
+
+@keyframes roomshot-ring {
+  0%   { opacity: 0.85; transform: scale(1.1); }
+  100% { opacity: 0;    transform: scale(1.9); }
+}
+
+/* 점은 원의 가장자리에서 조금 바깥으로 튀었다 사라진다 */
+@keyframes roomshot-drop {
+  0% {
+    opacity: 0.9;
+    transform: rotate(var(--a)) translateY(calc(var(--r, 34px) * -1)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(calc(var(--r, 34px) * -1 - 12px)) scale(0.6);
+  }
+}
+
+/* 동작 줄이기: pop·zoom 대신 짧은 fade 와 분류 전환만 */
+.roomshot.is-dipping .roomshot__camera {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roomshot__camera {
+    transition: opacity 160ms ease;
+  }
+
+  .roomshot__spot,
+  .roomshot__scene {
+    transition: opacity 200ms ease;
+  }
+
+  .roomshot__burst {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   물품 시트
+   윗부분(분류 바 영역)은 투명해서 접힌 상태에서는 분류 바가 사진 위에 떠 있고,
+   끌어올리면 분류 바와 목록이 함께 헤더 아래까지 올라온다.
+   -------------------------------------------------------------------------- */
+
+.supplies {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--sheet-top) + var(--sheet-drag, 0px));
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - var(--sheet-top-open));
+  transition: top 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* 분류 바 뒤의 띠 — 접힘에서는 투명, 펼침에서는 흰색 */
+.supplies::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--filter-zone);
+  background: var(--white);
+  opacity: 0;
+  transition: opacity 0.34s ease;
+}
+
+.supplies--expanded {
+  top: calc(var(--sheet-top-open) + var(--sheet-drag, 0px));
+}
+
+.supplies--expanded::before {
+  opacity: 1;
+}
+
+.supplies--dragging {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supplies,
+  .supplies::before {
+    transition: none;
+  }
+}
+
+/* 분류 바 — x 20 ~ 355, 높이 41, radius 11 ------------------------------ */
+
+.room-filter {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  flex: none;
+  height: 41px;
+  margin: 0 var(--gutter) 16px;
+  border-radius: 11px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.room-filter__tab {
+  position: relative;
+  height: 100%;
+  color: var(--gray-1);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.room-filter__tab + .room-filter__tab::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 10px;
+  background: var(--gray-4);
+  transform: translateY(-50%);
+}
+
+.room-filter__tab[aria-selected="true"] {
+  color: var(--primary-blue);
+  font-weight: var(--fw-semibold);
+}
+
+/* 흰 시트 본체 ----------------------------------------------------------- */
+
+.supplies__sheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--white);
+}
+
+/* 최신 업데이트 줄 = 시트 손잡이 (누르거나 끌어올린다) */
+.supplies__head {
+  position: relative;
+  flex: none;
+  padding: 21px 0 7px;
+  text-align: center;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.supplies__updated {
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.supplies__info {
+  position: absolute;
+  top: 18px;
+  right: 21px;
+  color: var(--gray-2);
+}
+
+/* 단계 설명 — info 버튼으로 여닫는다 */
+.supplies__note {
+  flex: none;
+  margin: 4px var(--gutter) 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-10);
+  background: var(--gray-3);
+  color: var(--gray-1);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1.6;
+}
+
+/* 접힌 상태에서는 보이는 만큼만, 펼치면 목록 안에서 스크롤 */
+.supplies__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+.supplies__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.supplies--expanded .supplies__scroll {
+  overflow-y: auto;
+}
+
+/* 공간 전환 뒤에 목록이 따라온다 — 잠깐 비켰다가 새 분류로 들어옴 */
+.supplies__scroll > * {
+  transition: opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.supplies__scroll.is-swapping > * {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+/* 물품 행 — 행 높이 64, 좌 22 / 우 21 ------------------------------------ */
+
+.supply-list {
+  padding: 0 21px 24px 22px;   /* 마지막 행이 네비게이션에 붙지 않도록 */
+}
+
+.supply {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 64px;
+}
+
+.supply__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--gray-3);
+}
+
+.supply__avatar .icon {
+  width: 23px;
+  height: 24px;
+  color: var(--primary-blue);
+}
+
+.supply__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.supply__title {
+  display: flex;
+  align-items: baseline;
+}
+
+.supply__name {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.supply__qty {
+  color: var(--gray-1);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+/* 물품명 · 수량 사이의 작은 점 */
+.supply__sep {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 9px 0 9px;
+  border-radius: var(--r-full);
+  background: var(--gray-1);
+  font-size: 0;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+.supply__date {
+  display: block;
+  margin-top: 7px;
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.supply__status {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 77px;
+  height: 22px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.supply__status--ok  { background: var(--blue-3);   color: var(--primary-blue); }
+.supply__status--low { background: var(--yellow-2); color: var(--yellow-1); }
+.supply__status--out { background: var(--red-3);    color: var(--red-1); }
+
+/* 빈 분류 (예: 기타) */
+.supplies__scroll .empty {
+  padding: 28px 32px;
+}

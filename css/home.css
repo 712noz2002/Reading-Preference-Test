@@ -1,0 +1,184 @@
+
+/* --------------------------------------------------------------------------
+   Folder tabs — "확인할 내용" 탭이 선택된 변형
+   Figma: 돌봄 흐름 187 x 42 (0,300), Union 208 x 42 (167,300)
+
+   Union 패스는 오른쪽 탭의 본체(187..375)에 왼쪽 아래로 뻗은 오목한 20px
+   이음새가 붙은 모양입니다. 본체는 .tab 기본 규칙 그대로 두고 이음새만
+   가상 요소로 그립니다.
+   -------------------------------------------------------------------------- */
+
+/* 50:50 탭 — 시안(홈 최신) 기준 이음새 x = 187
+   활성 탭 = 흰 면(아래 시트와 한 덩어리), 비활성 탭 = 그 위에 얹힌 회색 조각.
+   회색 조각의 이음새 쪽 아래 모서리를 크게 말아(r20) 흰 면이 파고들게 하고,
+   그 말린 자리 뒤에는 흰 채움(.tabs::before)을 깔아 파란 배경이 비치지 않게 한다.
+   위쪽 두 모서리는 두 탭 모두 r20 이라 가운데 위에 파란 홈이 작게 남는다. */
+
+.tabs > .tab,
+.tabs > .tab + .tab {
+  z-index: 1;
+  width: 187px;
+  margin-left: 0;
+  border-radius: var(--r-20) var(--r-20) 0 0;
+}
+
+.tabs > .tab + .tab {
+  width: 188px;
+}
+
+/* 이음새 뒤 흰 채움 — 기본(돌봄 흐름 활성): 회색 탭의 왼쪽 아래 */
+.tabs::before {
+  content: "";
+  position: absolute;
+  left: 187px;
+  bottom: 0;
+  z-index: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+}
+
+/* 확인할 내용 활성: 좌우 반전 — 회색 탭의 오른쪽 아래 */
+.tabs--checks::before {
+  left: 167px;
+}
+
+/* 비활성 탭 실루엣 */
+.tabs:not(.tabs--checks) > .tab[aria-selected="false"] {
+  border-radius: var(--r-20) var(--r-20) 0 var(--r-20);
+}
+
+.tabs--checks > .tab[aria-selected="false"] {
+  border-radius: var(--r-20) var(--r-20) var(--r-20) 0;
+}
+
+/* --------------------------------------------------------------------------
+   Sheet — 확인할 내용 탭 본문
+   마지막 카드 하단 775px + 42px = 817px (프레임 높이)
+   -------------------------------------------------------------------------- */
+
+.sheet--checks {
+  padding-bottom: 42px;
+}
+
+/* --------------------------------------------------------------------------
+   Filter chips — 전체 / 진료 / 면회
+   Figma: 47 x 25, radius 50, gap 8, (22, 366)
+   -------------------------------------------------------------------------- */
+
+.sheet--checks .chips {
+  padding: 24px var(--gutter) 0 22px;
+}
+
+/* 확인할 내용 필터는 고정 폭 칩이다 (Figma 47 x 25). */
+.sheet--checks .chip {
+  display: grid;
+  place-items: center;
+  width: 47px;
+  min-width: 0;
+  padding: 0;
+}
+
+
+/* --------------------------------------------------------------------------
+   Notice list — 확인할 내용 카드
+   Figma: 333 x 112, radius 10, (22, 404) / (22, 533.5) / (22, 663)
+   -------------------------------------------------------------------------- */
+
+.notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 17.5px;
+  padding: 13px 0 0 22px;
+}
+
+.notice {
+  display: flex;
+  gap: 12px;
+  width: 333px;
+  min-height: 112px;
+  padding: 14px 16px 16px 15px;
+  border-radius: var(--r-10);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.notice__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: var(--gray-3);
+}
+
+.notice__avatar svg {
+  width: 21px;
+  height: 22px;
+  color: var(--primary-blue);
+}
+
+.notice__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.notice__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.notice__title {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.notice__stamp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.notice__dot {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--gray-2);
+}
+
+.notice__text {
+  margin-top: 3px;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+.notice__action {
+  display: block;
+  width: 100%;
+  height: 25px;
+  margin-top: 10px;
+  border: 1px solid var(--primary-blue);
+  border-radius: 5px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  color: var(--primary-blue);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* 이미 확인한 항목 — Figma home-2-1 에서 카드 내용물만 50% 불투명 */
+.notice--read .notice__avatar,
+.notice--read .notice__body {
+  opacity: 0.5;
+}

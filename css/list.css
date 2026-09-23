@@ -1,0 +1,505 @@
+/* ==========================================================================
+   안심ON — 기록 (js/views/records.js)
+   날짜별 하루 카드 + swivel carousel. 기록 화면 레퍼런스 시안(375 x 817) 기준.
+   이 파일의 클래스는 전부 rc- 접두사 / .screen--records 스코프라 다른 플로우와
+   겹치지 않는다.
+   ========================================================================== */
+
+.screen--records {
+  height: var(--screen-h);
+  background: var(--primary-blue);
+}
+
+/* --------------------------------------------------------------------------
+   월 전환 — 파란 헤더 가운데 "2026년 9월 ⌄" (시안 y 68)
+   -------------------------------------------------------------------------- */
+
+.rc-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+}
+
+.rc-head__month {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--white);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-head__month .icon {
+  color: currentColor;
+}
+
+/* --------------------------------------------------------------------------
+   Carousel 무대
+   카드 i 의 위치는 JS 가 넣는 --o (i - 현재 위치, 부호 있음)와 --d (|o|) 두 값
+   뿐이고, 여기서 transform 을 계산한다. 값 조정은 아래 변수만 바꾸면 된다.
+   -------------------------------------------------------------------------- */
+
+.screen--records .rc-stage {
+  --rc-gutter: 33px;        /* 카드 좌우 여백 (시안 x 33 ~ 343)          */
+  --rc-card-h: 510px;       /* 시안 y 106 ~ 616                          */
+  --rc-depth: -44px;        /* 옆 카드가 뒤로 물러나는 깊이              */
+  --rc-dip: -70px;          /* 넘어가는 도중 추가로 물러나는 깊이        */
+  --rc-turn: -21deg;        /* 옆 카드가 가운데를 향해 도는 각도         */
+  --rc-shrink: 0.02;        /* 옆 카드 scale 감소량                      */
+
+  position: relative;
+  height: calc(var(--rc-card-h) + 20px);
+  margin-top: 6px;
+  perspective: 1100px;
+  perspective-origin: 50% 50%;
+  touch-action: pan-y;      /* 세로 스크롤은 브라우저에게, 가로는 carousel 에게 */
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.screen--records .rc-stage.is-dragging {
+  cursor: grabbing;
+}
+
+.rc-card {
+  --o: 0;    /* 부호 있는 위치 (-1 이전, 0 가운데, 1 다음)  */
+  --d: 0;    /* |o|                                          */
+  --x: 0;    /* 가로 이동량 (카드 폭 배수) — JS 가 계산       */
+  --mid: 0;  /* 넘어가는 중간(0.5)에서 1이 되는 값            */
+
+  position: absolute;
+  top: 0;
+  left: var(--rc-gutter);
+  right: var(--rc-gutter);
+  display: flex;
+  flex-direction: column;
+  height: var(--rc-card-h);
+  padding: 22px 25px 24px;
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: var(--shadow-float);
+  transform:
+    translateX(calc(var(--x) * 100%))
+    translateZ(calc(var(--d) * var(--rc-depth) + var(--mid) * var(--rc-dip)))
+    rotateY(calc(var(--o) * var(--rc-turn)))
+    scale(calc(1 - var(--d) * var(--rc-shrink)));
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.rc-card.is-hidden {
+  visibility: hidden;
+}
+
+/* 뒤쪽 카드는 시안처럼 회색 판으로 보이고, 앞으로 올라오면서 걷힌다. */
+.rc-card__veil {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gray-2);
+  opacity: clamp(0, calc((var(--d) - 0.3) * 1.45), 1);
+  pointer-events: none;
+}
+
+/* 뒤쪽 카드에는 그림자 대신 회색 판만 */
+.rc-card:not(.is-active) {
+  box-shadow: none;
+}
+
+/* --- 카드 머리: < 월요일 / 9월 21일 > ---------------------------------- */
+
+.rc-card__head {
+  display: grid;
+  grid-template-columns: 24px 1fr 24px;
+  align-items: center;
+}
+
+.rc-card__date {
+  text-align: center;
+}
+
+.rc-card__dow {
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.rc-card__day {
+  margin-top: 6px;
+  color: var(--primary-black);
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-card__arrow {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--gray-1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rc-card__arrow .icon {
+  color: currentColor;
+}
+
+.rc-card__arrow:disabled {
+  color: var(--gray-2);
+  cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+   하루 요약 — 카드에서 가장 먼저 읽히는 부분
+   상태 태그 → 대표 문장 → 짧은 설명 → (변화가 있는 날만) 강조 메모
+   -------------------------------------------------------------------------- */
+
+/* 남는 높이를 위아래로 나눠, 변화가 없는 날도 요약이 카드 가운데서 읽힌다 */
+.rc-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: auto 0;
+  padding: 18px 0 8px;
+  text-align: center;
+}
+
+.rc-day__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--r-full);
+  background: var(--blue-4);
+  color: var(--primary-blue);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-day__tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: currentColor;
+}
+
+.rc-card--change .rc-day__tag {
+  background: var(--yellow-2);
+  color: var(--yellow-1);
+}
+
+.rc-card--upcoming .rc-day__tag {
+  background: var(--gray-3);
+  color: var(--gray-1);
+}
+
+.rc-day__headline {
+  margin-top: 14px;
+  color: var(--primary-black);
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.3px;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.rc-card--upcoming .rc-day__headline {
+  color: var(--gray-1);
+}
+
+.rc-day__text {
+  max-width: 236px;
+  margin-top: 10px;
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+/* 보호자가 확인해야 할 변화 — 이 카드에서 색이 들어가는 곳은 여기뿐이다 */
+.rc-change {
+  align-self: stretch;
+  margin-top: 16px;
+  padding: 12px 14px 13px;
+  border-radius: var(--r-10);
+  background: var(--yellow-2);
+  text-align: left;
+}
+
+.rc-change__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--yellow-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-change__icon .icon {
+  color: currentColor;
+}
+
+.rc-change__text {
+  margin-top: 7px;
+  color: var(--primary-black);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+/* --------------------------------------------------------------------------
+   오늘의 돌봄 상태 — 순서가 없는 네 가지 상태를 한 판 안에 나란히
+   (시간 순서는 돌봄 타임라인 화면에서만. 여기는 점·연결선·화살표를 쓰지 않는다)
+   -------------------------------------------------------------------------- */
+
+.rc-stats {
+  flex: none;
+  margin-top: 18px;
+  padding: 13px 0 15px;
+  border-radius: var(--r-10);
+  background: var(--gray-3);
+}
+
+.rc-stats__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+.rc-stats__title {
+  color: var(--primary-black);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-stats__meta {
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+.rc-stats__list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 14px;
+}
+
+.rc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  text-align: center;
+}
+
+/* 항목 사이 아주 연한 세로 구분선 */
+.rc-stat + .rc-stat {
+  border-left: 1px solid var(--gray-4);
+}
+
+.rc-stat__label {
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rc-stat__value {
+  color: var(--primary-black);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.2px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 보호자가 살펴볼 항목만 색 — 나머지는 중립 */
+.rc-stat--watch .rc-stat__value {
+  color: var(--yellow-1);
+}
+
+.rc-stat--pending .rc-stat__value {
+  color: var(--gray-1);
+  font-weight: var(--fw-medium);
+}
+
+/* --- 오늘의 돌봄 흐름 살펴보기 ------------------------------------------ */
+
+.rc-card__more {
+  flex: none;
+  height: 40px;
+  margin-top: 16px;
+  border: 1px solid var(--primary-blue);
+  border-radius: var(--r-10);
+  color: var(--primary-blue);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease;
+}
+
+.rc-card__more:active {
+  opacity: 0.62;
+}
+
+/* --------------------------------------------------------------------------
+   오늘의 돌봄 — 카드 아래 파란 영역 (시안 y 665 / 693)
+   -------------------------------------------------------------------------- */
+
+.rc-summary {
+  padding: 24px var(--gutter) 0;
+  color: var(--white);
+  text-align: center;
+}
+
+.rc-summary__title {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.rc-summary__text {
+  margin-top: 14px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   돌봄 타임라인 — 기록 안의 두 번째 화면 (#/records?timeline=날짜)
+   공용 .timeline 컴포넌트를 쓰고, 이 화면에서만 필요한 것은 rt- 로 스코프.
+   -------------------------------------------------------------------------- */
+
+.screen--care-timeline {
+  height: var(--screen-h);
+}
+
+.app__view > .screen.screen--care-timeline {
+  overflow: hidden;
+}
+
+.app__view > .screen--care-timeline > .rt-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.rt-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.rt-date {
+  margin-top: -6px;
+  color: var(--gray-1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  text-align: center;
+}
+
+.rt-timeline {
+  padding: 26px 20px 32px 34px;
+}
+
+/* 파란 세로선 — 첫 점에서 마지막 카드까지 */
+.rt-timeline::before {
+  top: 32px;
+  bottom: 32px;
+  background: var(--primary-blue);
+}
+
+.rt-timeline .timeline__group + .timeline__group {
+  margin-top: 20px;
+}
+
+.rt-timeline .timeline__label {
+  font-size: var(--fs-12);
+}
+
+.rt-timeline .timeline__time {
+  font-size: var(--fs-10);
+}
+
+.rt-timeline .timeline__card {
+  height: 60px;
+  margin-top: 14px;
+  padding: 0 14px;
+}
+
+.rt-timeline .timeline__card + .timeline__card {
+  margin-top: 11px;
+}
+
+.rt-item__avatar {
+  background: var(--gray-3);
+}
+
+.rt-item__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rt-timeline .timeline__card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-12);
+}
+
+.rt-item__detail {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rt-item__at {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 17px;
+  color: var(--primary-blue);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+}
+
+/* 관찰이 필요한 기록만 작게 표시 */
+.rt-item__flag {
+  display: inline-grid;
+  place-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: var(--r-full);
+  background: var(--yellow-2);
+  color: var(--yellow-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.screen--care-timeline .empty {
+  padding-top: 120px;
+}

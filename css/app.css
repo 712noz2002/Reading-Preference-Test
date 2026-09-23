@@ -1,0 +1,256 @@
+/* ==========================================================================
+   안심ON — App shell
+   The phone artboard, the device frame around it on desktop, and the few
+   affordances that only exist because the prototype is interactive.
+   ========================================================================== */
+
+body.app-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.app {
+  position: relative;
+  width: var(--screen-w);
+  height: var(--screen-h);
+  overflow: hidden;
+  background: var(--white);
+}
+
+.app__view {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The view root: every screen fills the artboard and scrolls inside it. */
+.app__view > .screen {
+  height: 100%;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.app__view > .screen::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 440px) and (min-height: 880px) {
+  body.app-body {
+    padding: 24px;
+  }
+
+  .app {
+    border-radius: 34px;
+    box-shadow: 0 30px 70px rgba(10, 10, 15, 0.22);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Interaction affordances
+   -------------------------------------------------------------------------- */
+
+.tab,
+.chip,
+.datestrip__day,
+.navbar__item,
+.quick-action,
+.notice__action,
+.timeline__card,
+.hero-card {
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+.tab:active,
+.chip:active,
+.datestrip__day:active,
+.navbar__item:active,
+.quick-action:active,
+.notice__action:active,
+.timeline__card:active,
+.hero-card:active {
+  opacity: 0.62;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Empty state — a day with no records, a filter with no matches
+   -------------------------------------------------------------------------- */
+
+.empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 72px 32px;
+  text-align: center;
+}
+
+.empty__glyph {
+  width: 40px;
+  height: 42px;
+  color: var(--gray-4);
+}
+
+.empty__title {
+  color: var(--primary-black);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
+.empty__text {
+  color: var(--gray-1);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Toast
+   -------------------------------------------------------------------------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 92px;
+  z-index: 60;
+  max-width: 300px;
+  padding: 11px 16px;
+  border-radius: var(--r-10);
+  background: rgba(10, 10, 15, 0.9);
+  color: var(--white);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.toast.is-in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* --------------------------------------------------------------------------
+   Month picker sheet (기록 화면)
+   -------------------------------------------------------------------------- */
+
+.picker {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(10, 10, 15, 0.35);
+}
+
+.picker[hidden] {
+  display: none;
+}
+
+.picker__panel {
+  padding: 20px 20px 28px;
+  border-radius: var(--r-20) var(--r-20) 0 0;
+  background: var(--white);
+}
+
+.picker__title {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  text-align: center;
+}
+
+.picker__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.picker__item {
+  height: 44px;
+  border-radius: var(--r-10);
+  background: var(--gray-3);
+  color: var(--primary-black);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+}
+
+.picker__item[aria-current="true"] {
+  background: var(--primary-blue);
+  color: var(--white);
+  font-weight: var(--fw-semibold);
+}
+
+/* --------------------------------------------------------------------------
+   Debug strip — only shown when ?dev is on the URL
+   -------------------------------------------------------------------------- */
+
+.devbar {
+  position: absolute;
+  right: 8px;
+  bottom: 78px;
+  z-index: 70;
+  padding: 6px 10px;
+  border-radius: var(--r-full);
+  background: rgba(10, 10, 15, 0.75);
+  color: var(--white);
+  font-size: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Bottom navigation always sits on the bottom edge of the artboard, even when
+   the screen's content is shorter than 817px. `position: sticky` alone only
+   pins it once the content overflows, so the screen is a flex column and the
+   navbar takes the leftover space above it.
+   -------------------------------------------------------------------------- */
+
+.app__view > .screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.app__view > .screen > * {
+  flex: none;
+}
+
+.app__view > .screen > .navbar {
+  margin-top: auto;
+}
+
+/* Menu sheet items (홈 햄버거) */
+
+.menu-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.menu-list__item {
+  height: 48px;
+  border-radius: var(--r-10);
+  background: var(--gray-3);
+  color: var(--primary-black);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+
+.menu-list__item--danger {
+  color: var(--red-1);
+}
