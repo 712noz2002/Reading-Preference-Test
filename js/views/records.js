@@ -287,26 +287,40 @@
      세로 스크롤이 시작되면 브라우저가 터치의 pointer 이벤트를 끊으므로(pointercancel),
      그동안은 passive touchmove 로 같은 aim() 을 이어서 부른다 — 스크롤은 막지 않는다.
      기준은 화면(앱 화면) 전체 — 캐릭터 중심에서 화면 반 폭 / 반 높이 떨어지면 최대치.
-     얼굴 ±6 / ±4 px · 몸 rotateY ±6° / rotateX ±4° · 그림자 ±3px. */
+     얼굴 ±11 / ±7.5 px · 몸 rotateY ±11° / rotateX ±7.5° · 그림자 ±5px.
+     누른 순간은 빠르게(약 90ms) 약 110% 까지 갔다가 100% 로, 손을 떼면 200ms
+     바라본 뒤 천천히 정면으로. */
 
   var LOOK = {
-    faceX: 6, faceY: 4,       // px
-    rotY: 6, rotX: 4,         // deg
-    shadowX: 3,               // px
-    follow: 0.12,             // 따라갈 때 시간 상수 (s) — 약 120~150ms 뒤처짐
-    settle: 0.16              // 돌아올 때 시간 상수 (s) — 약 500ms 에 원위치
+    faceX: 11, faceY: 7.5,    // px — 얼굴 이동 최대치
+    rotY: 11, rotX: 7.5,      // deg — 몸 기울기 최대치
+    shadowX: 5,               // px — 그림자
+    hold: 200                 // ms — 손을 뗀 뒤 그 방향을 잠깐 바라보는 시간
   };
+
+  /* 움직임의 성격 = 스프링(고유진동수 w, 감쇠비 z).
+       snap   눌렀을 때 — 빠르게(약 90ms에 정점) 목표의 약 110% 까지 갔다가 100% 로
+       follow 움직이는 동안 — 오버슈트 없이 100~150ms 뒤처져 따라옴
+       settle 돌아올 때 — 부드럽게 350~500ms */
+  var SPRING = {
+    snap:   { w: 42, z: 0.57 },
+    follow: { w: 19, z: 1 },
+    settle: { w: 10, z: 1 }
+  };
+  var SNAP_MS = 170;          // 누른 뒤 이 시간 동안은 snap, 이후 follow
 
   function createLook(root) {
     var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var gain = reduced ? 0.6 : 1;           // 동작 줄이기에서는 폭만 줄인다
     var target = { x: 0, y: 0 };
-    var cur = { x: 0, y: 0 };
-    var tau = LOOK.follow;
+    var pos = { x: 0, y: 0 };
+    var vel = { x: 0, y: 0 };
+    var mode = SPRING.follow;
     var raf = 0;
     var last = 0;
     var el = null;                          // 지금 바라보게 하는 .orb
     var touching = false;                   // 손가락이 화면에 닿아 있음
+    var snapTimer = 0;
+    var holdTimer = 0;
 
     function activeOrb() {
       return root.querySelector(".rc-card.is-active .orb");
@@ -324,28 +338,38 @@
 
     function write(node, x, y) {
       if (!node) return;
-      node.style.setProperty("--rx", (y * -LOOK.rotX * gain).toFixed(3) + "deg");
-      node.style.setProperty("--ry", (x * LOOK.rotY * gain).toFixed(3) + "deg");
-      node.style.setProperty("--fx", (x * LOOK.faceX * gain).toFixed(3) + "px");
-      node.style.setProperty("--fy", (y * LOOK.faceY * gain).toFixed(3) + "px");
-      node.style.setProperty("--sx", (x * LOOK.shadowX * gain).toFixed(3) + "px");
+      node.style.setProperty("--rx", (y * -LOOK.rotX).toFixed(3) + "deg");
+      node.style.setProperty("--ry", (x * LOOK.rotY).toFixed(3) + "deg");
+      node.style.setProperty("--fx", (x * LOOK.faceX).toFixed(3) + "px");
+      node.style.setProperty("--fy", (y * LOOK.faceY).toFixed(3) + "px");
+      node.style.setProperty("--sx", (x * LOOK.shadowX).toFixed(3) + "px");
+    }
+
+    /* 스프링 한 축 — 작은 간격으로 나눠 적분해 프레임이 들쭉날쭉해도 같은 모양 */
+    function step(axis, dt) {
+      var w = mode.w;
+      var z = reduced ? 1 : mode.z;         // 동작 줄이기: 오버슈트 없이
+      var a = w * w * (target[axis] - pos[axis]) - 2 * z * w * vel[axis];
+      vel[axis] += a * dt;
+      pos[axis] += vel[axis] * dt;
     }
 
     function tick(now) {
       var dt = Math.min(0.05, (now - (last || now)) / 1000);
       last = now;
-      var k = 1 - Math.exp(-dt / tau);
-      cur.x += (target.x - cur.x) * k;
-      cur.y += (target.y - cur.y) * k;
+      var n = Math.max(1, Math.ceil(dt / 0.004));
+      for (var i = 0; i < n; i++) { step("x", dt / n); step("y", dt / n); }
 
       var node = activeOrb();
       if (node !== el) {                    // 날짜가 바뀌면 이전 오브제는 정면으로
         write(el, 0, 0);
         el = node;
       }
-      write(el, cur.x, cur.y);
+      write(el, pos.x, pos.y);
 
-      if (Math.abs(target.x - cur.x) + Math.abs(target.y - cur.y) > 0.0005) {
+      var moving = Math.abs(target.x - pos.x) + Math.abs(target.y - pos.y)
+        + Math.abs(vel.x) + Math.abs(vel.y);
+      if (moving > 0.0008) {
         raf = requestAnimationFrame(tick);
       } else {
         raf = 0;
@@ -359,41 +383,56 @@
 
     function clamp(v) { return Math.max(-1, Math.min(1, v)); }
 
-    /** 화면 좌표 하나를 바라본다 */
-    function aim(px, py) {
+    /** 화면 좌표 하나를 바라본다. snap = 누른 순간의 빠른 반응 */
+    function aim(px, py, snap) {
       var node = activeOrb();
       var body = node && node.querySelector(".orb__tilt");
       if (!body) return;
       var box = body.getBoundingClientRect();
       var f = frame();
-      target.x = clamp((px - (box.left + box.width / 2)) / f.hw);
-      target.y = clamp((py - (box.top + box.height / 2)) / f.hh);
-      tau = LOOK.follow;
+      var x = clamp((px - (box.left + box.width / 2)) / f.hw);
+      var y = clamp((py - (box.top + box.height / 2)) / f.hh);
+      /* 원 안으로 — 대각선에서 두 축이 동시에 최대가 되어 얼굴이 가장자리에 닿지 않게 */
+      var m = Math.sqrt(x * x + y * y);
+      if (m > 1) { x /= m; y /= m; }
+      target.x = x;
+      target.y = y;
+      clearTimeout(holdTimer);
+      if (snap) {
+        mode = SPRING.snap;
+        clearTimeout(snapTimer);
+        snapTimer = setTimeout(function () { mode = SPRING.follow; }, SNAP_MS);
+      } else if (mode !== SPRING.snap) {
+        mode = SPRING.follow;
+      }
       kick();
     }
 
-    /** 정면으로 천천히 돌아온다 */
-    function release() {
-      target.x = 0;
-      target.y = 0;
-      tau = LOOK.settle;
-      kick();
+    /** 잠깐 바라본 뒤(hold ms) 정면으로 천천히 돌아온다 */
+    function release(hold) {
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(function () {
+        target.x = 0;
+        target.y = 0;
+        mode = SPRING.settle;
+        kick();
+      }, hold || 0);
     }
 
     function onPointerDown(e) {
       if (e.pointerType !== "mouse") touching = true;
-      aim(e.clientX, e.clientY);
+      aim(e.clientX, e.clientY, true);       // 누른 곳을 확 바라봄
     }
 
     function onPointerMove(e) {
       if (e.pointerType !== "mouse" && !touching) return;   // 펜 hover 등은 무시
-      aim(e.clientX, e.clientY);
+      aim(e.clientX, e.clientY, false);
     }
 
     function onPointerUp(e) {
       if (e.pointerType === "mouse") return;               // 마우스는 계속 바라봄
       touching = false;
-      release();
+      release(LOOK.hold);
     }
 
     /* 스크롤이 터치를 가져간 뒤에도 손가락을 계속 따라본다 (passive — 스크롤 방해 없음) */
@@ -401,18 +440,21 @@
       var t = e.touches && e.touches[0];
       if (!t) return;
       touching = true;
-      aim(t.clientX, t.clientY);
+      aim(t.clientX, t.clientY, false);
     }
 
     function onTouchEnd(e) {
       if (e.touches && e.touches.length) return;
+      if (!touching) return;                 // pointerup 이 이미 처리
       touching = false;
-      release();
+      release(LOOK.hold);
     }
 
     function onMouseOut(e) {
-      if (!e.relatedTarget) release();      // 창 밖으로 나감
+      if (!e.relatedTarget) release(0);     // 창 밖으로 나감
     }
+
+    function releaseNow() { release(0); }
 
     var opts = { passive: true };
     window.addEventListener("pointerdown", onPointerDown, opts);
@@ -422,12 +464,14 @@
     window.addEventListener("touchend", onTouchEnd, opts);
     window.addEventListener("touchcancel", onTouchEnd, opts);
     document.addEventListener("mouseout", onMouseOut);
-    document.documentElement.addEventListener("mouseleave", release);
-    window.addEventListener("blur", release);
+    document.documentElement.addEventListener("mouseleave", releaseNow);
+    window.addEventListener("blur", releaseNow);
 
     return {
       destroy: function () {
         cancelAnimationFrame(raf);
+        clearTimeout(snapTimer);
+        clearTimeout(holdTimer);
         window.removeEventListener("pointerdown", onPointerDown, opts);
         window.removeEventListener("pointermove", onPointerMove, opts);
         window.removeEventListener("pointerup", onPointerUp, opts);
@@ -435,8 +479,8 @@
         window.removeEventListener("touchend", onTouchEnd, opts);
         window.removeEventListener("touchcancel", onTouchEnd, opts);
         document.removeEventListener("mouseout", onMouseOut);
-        document.documentElement.removeEventListener("mouseleave", release);
-        window.removeEventListener("blur", release);
+        document.documentElement.removeEventListener("mouseleave", releaseNow);
+        window.removeEventListener("blur", releaseNow);
       }
     };
   }
