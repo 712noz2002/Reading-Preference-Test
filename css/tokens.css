@@ -30,6 +30,28 @@
   /* Derived — hero gradient end (Figma linear fill stop) */
   --blue-deep: #003499;
 
+  /* 기록 카드의 말풍선 오브제 — 기록 화면 3D 오브제 시안.
+     하이라이트(hi) → 몸통(mid) → 가장자리(lo) 세 단계 그라데이션을 상태별로. */
+  --orb-normal-hi: #5d95ff;
+  --orb-normal-mid: #2a6af5;
+  --orb-normal-lo: #0b43c6;
+  --orb-check-hi: #7398e0;     /* 채도를 조금 낮춤 */
+  --orb-check-mid: #3a6bd3;
+  --orb-check-lo: #1d46a6;
+  --orb-attn-hi: #6d8dd6;      /* 더 차분하게 + 따뜻한 신호 */
+  --orb-attn-mid: #3663c6;
+  --orb-attn-lo: #1b4198;
+  --orb-recov-hi: #8bbaff;     /* 더 맑고 밝게 */
+  --orb-recov-mid: #3f84ff;
+  --orb-recov-lo: #1459e0;
+  --orb-rest-hi: #c6d4ee;      /* 아직 기록 전 */
+  --orb-rest-mid: #a8badf;
+  --orb-rest-lo: #8398c4;
+  --orb-shadow-ink: #0a205a;   /* 그림자 색 — 진하기는 animation 의 opacity 로 */
+  --warm-1: #ff9a3d;           /* 확인이 필요한 변화 — 작은 따뜻한 신호 */
+  --warm-2: rgba(255, 154, 61, 0.32);
+  --warm-tint: #ffb36b;
+
   /* 사진 위에 얹는 반투명 흰 카드 — 최신 함께ON 시안 (사진이 아주 약하게 비침) */
   --white-glass: rgba(255, 255, 255, 0.9);
 

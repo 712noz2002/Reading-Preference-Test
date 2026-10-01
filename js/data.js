@@ -272,6 +272,22 @@ App.data = (function () {
     { key: "evening",   label: "저녁 돌봄", time: "17:00 - 20:00" }
   ];
 
+  /* 기록 카드 오브제 상태 — 진단이 아니라 관찰 중심의 표현.
+     상태는 그날 careRecords 와 전날 기록을 종합해 records.js(moodOf)가 정한다.
+       normal    평소와 비슷함
+       check     작은 변화가 관찰됨       (어느 기록이 "watch")
+       attention 확인이 필요한 변화가 있음 (어느 기록이 "attention")
+       recovery  이전보다 안정됨          (전날 변화가 있었고 오늘은 없음)
+       rest      아직 기록 전
+     today = 오늘 카드, past = 지난 날짜 카드 */
+  var moodCopy = {
+    normal:    { today: "현재까지 평소와 다름없는\n하루를 보내고 있어요", past: "평소와 다름없는\n하루를 보냈어요" },
+    check:     { today: "오늘은 평소와 조금 다른\n모습이 관찰됐어요",     past: "평소와 조금 다른\n모습이 관찰됐어요" },
+    attention: { today: "오늘 확인이 필요한\n변화가 기록됐어요",        past: "확인이 필요한\n변화가 기록됐어요" },
+    recovery:  { today: "어제보다 조금 더 안정적인\n모습을 보이고 있어요", past: "전날보다 조금 더 안정적인\n모습을 보였어요" },
+    rest:      { today: "아직 기록이\n시작되기 전이에요",             past: "아직 기록이\n시작되기 전이에요" }
+  };
+
   var careDays = [
     {
       date: "2026-09-17",
@@ -377,7 +393,7 @@ App.data = (function () {
       careRecords: {
         meal:     { status: "원활",    state: "done" },
         activity: { status: "재활 완료", state: "done" },
-        toilet:   { status: "관찰 중", state: "watch" },
+        toilet:   { status: "변화 있음", state: "attention" },
         hygiene:  { status: "완료",    state: "done" }
       },
       timeline: [
@@ -474,6 +490,7 @@ App.data = (function () {
     suppliesUpdatedAt: "09:30 (화)",
     careToday: careToday,
     careAreas: careAreas,
+    moodCopy: moodCopy,
     carePeriods: carePeriods,
     careDays: careDays
   };

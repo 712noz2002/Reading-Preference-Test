@@ -24,7 +24,6 @@
 
   var AREA_ICON = { meal: "care-meal", activity: "care-activity", toilet: "care-toilet", hygiene: "care-hygiene" };
 
-  var TONE_TAG = { calm: "평소와 같아요", change: "살펴볼 변화 1", upcoming: "기록 전" };
 
   /* 모션 파라미터 */
   var SNAP_MS = 420;            // 350~450ms
@@ -66,35 +65,98 @@
       + "</button></header>";
   }
 
-  /* 요약형 카드 — 위에서부터 "하루가 어땠는가" → (변화) → 네 가지 돌봄 한 줄 → 기록 흐름 */
+  /* --- 상태 오브제 ---------------------------------------------------------
+     그날 네 가지 기록(careRecords)과 전날 기록을 종합해 상태를 정한다.
+     진단이 아니라 "평소와 비교한 관찰"이므로 단계는 넷 + 기록 전 하나뿐이다. */
+
+  var MOODS = ["normal", "check", "attention", "recovery", "rest"];
+
+  function changeLevel(day) {
+    if (!day) return 0;
+    var recs = day.careRecords || {};
+    var level = 0;
+    Object.keys(recs).forEach(function (k) {
+      if (recs[k].state === "attention") level = Math.max(level, 2);
+      else if (recs[k].state === "watch") level = Math.max(level, 1);
+    });
+    return level;
+  }
+
+  function moodOf(day, prev) {
+    if ((day.dailySummary || {}).tone === "upcoming") return "rest";
+    var level = changeLevel(day);
+    if (level === 2) return "attention";
+    if (level === 1) return "check";
+    if (changeLevel(prev) > 0) return "recovery";
+    return "normal";
+  }
+
+  /* 기존 말풍선 시각 언어를 그대로 쓴 SVG 오브제 — 같은 캐릭터가 상태에 따라
+     색조·표정·자세·움직임만 조금씩 달라진다 (list.css 의 [data-mood]). */
+  function orb(mood, i) {
+    var g = "orb" + i;
+    return '<div class="orb" data-mood="' + mood + '" aria-hidden="true">'
+      /* pose  → 날짜 전환 (사라졌다 나타남)
+         float → idle 부유 (keyframes)
+         tilt  → 포인터 방향으로 살짝 돌아봄 (rotateX/Y, JS 가 --rx/--ry)
+           body (SVG) + face (별도 SVG — 미소만, JS 가 --fx/--fy 로 이동) */
+      + '<div class="orb__pose"><div class="orb__float"><div class="orb__tilt">'
+      + '<svg class="orb__svg orb__body-layer" viewBox="0 0 100 100">'
+      + "<defs>"
+      + '<radialGradient id="' + g + 'b" cx="64" cy="34" r="70" gradientUnits="userSpaceOnUse">'
+      + '<stop offset="0" class="orb__stop orb__stop--hi"/>'
+      + '<stop offset="0.55" class="orb__stop orb__stop--mid"/>'
+      + '<stop offset="1" class="orb__stop orb__stop--lo"/>'
+      + "</radialGradient>"
+      + '<radialGradient id="' + g + 'h" cx="0.5" cy="0.5" r="0.5">'
+      + '<stop offset="0" class="orb__gloss" stop-opacity="0.22"/>'
+      + '<stop offset="1" class="orb__gloss" stop-opacity="0"/>'
+      + "</radialGradient>"
+      + '<radialGradient id="' + g + 'r" cx="60" cy="40" r="60" gradientUnits="userSpaceOnUse">'
+      + '<stop offset="0.72" class="orb__rim-stop" stop-opacity="0"/>'
+      + '<stop offset="1" class="orb__rim-stop" stop-opacity="0.32"/>'
+      + "</radialGradient>"
+      + '<radialGradient id="' + g + 'w" cx="72" cy="74" r="46" gradientUnits="userSpaceOnUse">'
+      + '<stop offset="0" class="orb__warm-stop" stop-opacity="1"/>'
+      + '<stop offset="1" class="orb__warm-stop" stop-opacity="0"/>'
+      + "</radialGradient>"
+      + "</defs>"
+      + '<g class="orb__body">'
+      + '<path class="orb__tail" d="M19 70 L14.5 93 Q13.8 96.8 17.4 95.4 L39 86 Z" fill="url(#' + g + 'b)" stroke="url(#' + g + 'b)"/>'
+      + '<circle cx="50" cy="46" r="44" fill="url(#' + g + 'b)"/>'
+      + '<circle class="orb__warm" cx="50" cy="46" r="44" fill="url(#' + g + 'w)"/>'
+      + '<circle class="orb__rim" cx="50" cy="46" r="44" fill="url(#' + g + 'r)"/>'
+      + '<ellipse cx="60" cy="32" rx="30" ry="24" fill="url(#' + g + 'h)"/>'
+      + "</g>"
+      + "</svg>"
+      + '<svg class="orb__svg orb__face" viewBox="0 0 100 100">'
+      + '<path class="orb__smile" d="M29 58 C33 74.5 67 74.5 71 58"/>'
+      + "</svg>"
+      + '<span class="orb__signal"></span>'
+      + "</div></div></div>"
+      + '<span class="orb__shadow-track"><span class="orb__shadow"></span></span>'
+      + "</div>";
+  }
+
+  /* 요약형 카드 — 날짜 → 상태 오브제 → 상태 문장 → 짧은 설명 → 네 가지 돌봄 → 흐름 */
   function card(day, i, count) {
     var d = ui.parseISO(day.date);
     var sum = day.dailySummary || {};
-    var tone = sum.tone || "calm";
     var recs = day.careRecords || {};
-    var tl = day.timeline || [];
+    var mood = moodOf(day, days()[i - 1]);
+    var headline = headlineFor(day, mood);
 
-    /* 네 가지 돌봄은 순서가 없는 병렬 상태값 — 레이블 + 상태만, 연결선·점 없음 */
+    /* 네 가지 돌봄은 순서가 없는 병렬 상태값 — 레이블 + 상태만 */
     var cells = (data.careAreas || []).map(function (a) {
       var r = recs[a.key] || { status: "-", state: "pending" };
       return '<li class="rc-stat rc-stat--' + r.state + '">'
         + '<span class="rc-stat__label">' + ui.esc(a.label) + "</span>"
-        + '<span class="rc-stat__value">' + ui.esc(r.status) + "</span>"
+        + '<span class="rc-stat__value"' + (r.state === "pending" ? ' aria-label="기록 전"' : "") + ">"
+        + ui.esc(r.state === "pending" ? "-" : r.status) + "</span>"
         + "</li>";
     }).join("");
 
-    var change = sum.change
-      ? '<div class="rc-change">'
-        + '<p class="rc-change__title">'
-        + '<span class="rc-change__icon">' + ui.icon(AREA_ICON[sum.change.area] || "info-circle", { size: 16 }) + "</span>"
-        + ui.esc(sum.change.title) + "</p>"
-        + '<p class="rc-change__text">' + ui.esc(sum.change.text) + "</p>"
-        + "</div>"
-      : "";
-
-    var meta = tl.length ? "기록 " + tl.length + "건" : "기록 전";
-
-    return '<article class="rc-card rc-card--' + tone + '"'
+    return '<article class="rc-card rc-card--' + mood + '"'
       + ' data-rc-card="' + i + '" aria-roledescription="slide"'
       + ' aria-label="' + ui.esc(ui.dateLabel(day.date)) + ' 기록">'
       + '<header class="rc-card__head">'
@@ -108,24 +170,23 @@
       + (i === count - 1 ? " disabled" : "") + ">" + ui.icon("chevron-right", { size: 20 }) + "</button>"
       + "</header>"
 
+      + orb(mood, i)
+
       + '<section class="rc-day">'
-      + '<p class="rc-day__tag">' + ui.esc(TONE_TAG[tone] || "") + "</p>"
-      + '<p class="rc-day__headline">' + lines(sum.headline || "") + "</p>"
+      + '<p class="rc-day__headline">' + lines(headline || "") + "</p>"
       + '<p class="rc-day__text">' + ui.esc(sum.text || "") + "</p>"
-      + change
       + "</section>"
 
-      + '<section class="rc-stats" aria-label="' + ui.esc(statsTitle(day)) + '">'
-      + '<header class="rc-stats__head">'
-      + '<h3 class="rc-stats__title">' + ui.esc(statsTitle(day)) + "</h3>"
-      + '<p class="rc-stats__meta">' + ui.esc(meta) + "</p>"
-      + "</header>"
-      + '<ul class="rc-stats__list">' + cells + "</ul>"
-      + "</section>"
+      + '<ul class="rc-stats" aria-label="' + ui.esc(statsTitle(day)) + '">' + cells + "</ul>"
 
       + '<button type="button" class="rc-card__more" data-action="rc-timeline">오늘의 돌봄 흐름 살펴보기</button>'
       + '<span class="rc-card__veil" aria-hidden="true"></span>'
       + "</article>";
+  }
+
+  function headlineFor(day, mood) {
+    var copy = (data.moodCopy || {})[mood] || {};
+    return day.date === data.careToday || mood === "rest" ? copy.today : copy.past;
   }
 
   function statsTitle(day) {
@@ -217,6 +278,170 @@
     for (var i = 0; i < list.length; i++) if (list[i].date === iso) return i;
     return -1;
   }
+
+  /* --- 포인터 따라보기 (데스크톱 마우스 · 모바일 손가락 공통) ---------------
+     Pointer Events 하나로 처리한다.
+       pointerdown / pointermove → 그 위치를 바라봄 (마우스는 움직이기만 해도)
+       pointerup                 → 손가락·펜을 떼면 약 500ms 에 걸쳐 정면으로
+       mouse 가 창 밖으로 나감    → 정면으로
+     세로 스크롤이 시작되면 브라우저가 터치의 pointer 이벤트를 끊으므로(pointercancel),
+     그동안은 passive touchmove 로 같은 aim() 을 이어서 부른다 — 스크롤은 막지 않는다.
+     기준은 화면(앱 화면) 전체 — 캐릭터 중심에서 화면 반 폭 / 반 높이 떨어지면 최대치.
+     얼굴 ±6 / ±4 px · 몸 rotateY ±6° / rotateX ±4° · 그림자 ±3px. */
+
+  var LOOK = {
+    faceX: 6, faceY: 4,       // px
+    rotY: 6, rotX: 4,         // deg
+    shadowX: 3,               // px
+    follow: 0.12,             // 따라갈 때 시간 상수 (s) — 약 120~150ms 뒤처짐
+    settle: 0.16              // 돌아올 때 시간 상수 (s) — 약 500ms 에 원위치
+  };
+
+  function createLook(root) {
+    var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var gain = reduced ? 0.6 : 1;           // 동작 줄이기에서는 폭만 줄인다
+    var target = { x: 0, y: 0 };
+    var cur = { x: 0, y: 0 };
+    var tau = LOOK.follow;
+    var raf = 0;
+    var last = 0;
+    var el = null;                          // 지금 바라보게 하는 .orb
+    var touching = false;                   // 손가락이 화면에 닿아 있음
+
+    function activeOrb() {
+      return root.querySelector(".rc-card.is-active .orb");
+    }
+
+    /* 화면 기준 범위 — 폰에서는 창 전체, 데스크톱 미리보기에서는 앱 화면(375 x 817) */
+    function frame() {
+      var app = document.querySelector(".app");
+      var r = app ? app.getBoundingClientRect() : null;
+      return {
+        hw: (r && r.width ? r.width : window.innerWidth) / 2,
+        hh: (r && r.height ? r.height : window.innerHeight) / 2
+      };
+    }
+
+    function write(node, x, y) {
+      if (!node) return;
+      node.style.setProperty("--rx", (y * -LOOK.rotX * gain).toFixed(3) + "deg");
+      node.style.setProperty("--ry", (x * LOOK.rotY * gain).toFixed(3) + "deg");
+      node.style.setProperty("--fx", (x * LOOK.faceX * gain).toFixed(3) + "px");
+      node.style.setProperty("--fy", (y * LOOK.faceY * gain).toFixed(3) + "px");
+      node.style.setProperty("--sx", (x * LOOK.shadowX * gain).toFixed(3) + "px");
+    }
+
+    function tick(now) {
+      var dt = Math.min(0.05, (now - (last || now)) / 1000);
+      last = now;
+      var k = 1 - Math.exp(-dt / tau);
+      cur.x += (target.x - cur.x) * k;
+      cur.y += (target.y - cur.y) * k;
+
+      var node = activeOrb();
+      if (node !== el) {                    // 날짜가 바뀌면 이전 오브제는 정면으로
+        write(el, 0, 0);
+        el = node;
+      }
+      write(el, cur.x, cur.y);
+
+      if (Math.abs(target.x - cur.x) + Math.abs(target.y - cur.y) > 0.0005) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+        last = 0;
+      }
+    }
+
+    function kick() {
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    function clamp(v) { return Math.max(-1, Math.min(1, v)); }
+
+    /** 화면 좌표 하나를 바라본다 */
+    function aim(px, py) {
+      var node = activeOrb();
+      var body = node && node.querySelector(".orb__tilt");
+      if (!body) return;
+      var box = body.getBoundingClientRect();
+      var f = frame();
+      target.x = clamp((px - (box.left + box.width / 2)) / f.hw);
+      target.y = clamp((py - (box.top + box.height / 2)) / f.hh);
+      tau = LOOK.follow;
+      kick();
+    }
+
+    /** 정면으로 천천히 돌아온다 */
+    function release() {
+      target.x = 0;
+      target.y = 0;
+      tau = LOOK.settle;
+      kick();
+    }
+
+    function onPointerDown(e) {
+      if (e.pointerType !== "mouse") touching = true;
+      aim(e.clientX, e.clientY);
+    }
+
+    function onPointerMove(e) {
+      if (e.pointerType !== "mouse" && !touching) return;   // 펜 hover 등은 무시
+      aim(e.clientX, e.clientY);
+    }
+
+    function onPointerUp(e) {
+      if (e.pointerType === "mouse") return;               // 마우스는 계속 바라봄
+      touching = false;
+      release();
+    }
+
+    /* 스크롤이 터치를 가져간 뒤에도 손가락을 계속 따라본다 (passive — 스크롤 방해 없음) */
+    function onTouchMove(e) {
+      var t = e.touches && e.touches[0];
+      if (!t) return;
+      touching = true;
+      aim(t.clientX, t.clientY);
+    }
+
+    function onTouchEnd(e) {
+      if (e.touches && e.touches.length) return;
+      touching = false;
+      release();
+    }
+
+    function onMouseOut(e) {
+      if (!e.relatedTarget) release();      // 창 밖으로 나감
+    }
+
+    var opts = { passive: true };
+    window.addEventListener("pointerdown", onPointerDown, opts);
+    window.addEventListener("pointermove", onPointerMove, opts);
+    window.addEventListener("pointerup", onPointerUp, opts);
+    window.addEventListener("touchmove", onTouchMove, opts);
+    window.addEventListener("touchend", onTouchEnd, opts);
+    window.addEventListener("touchcancel", onTouchEnd, opts);
+    document.addEventListener("mouseout", onMouseOut);
+    document.documentElement.addEventListener("mouseleave", release);
+    window.addEventListener("blur", release);
+
+    return {
+      destroy: function () {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("pointerdown", onPointerDown, opts);
+        window.removeEventListener("pointermove", onPointerMove, opts);
+        window.removeEventListener("pointerup", onPointerUp, opts);
+        window.removeEventListener("touchmove", onTouchMove, opts);
+        window.removeEventListener("touchend", onTouchEnd, opts);
+        window.removeEventListener("touchcancel", onTouchEnd, opts);
+        document.removeEventListener("mouseout", onMouseOut);
+        document.documentElement.removeEventListener("mouseleave", release);
+        window.removeEventListener("blur", release);
+      }
+    };
+  }
+
+  var look = null;
 
   /* --- carousel engine --------------------------------------------------- */
 
@@ -395,6 +620,7 @@
 
     unmount: function () {
       if (engine) { engine.destroy(); engine = null; }
+      if (look) { look.destroy(); look = null; }
       /* App.refresh() 도 unmount 를 거친다. 해시가 그대로면 같은 화면을 다시
          그리는 것이므로 선택 날짜를 유지하고, 탭을 떠날 때만 오늘로 되돌린다. */
       var leaving = location.hash.indexOf("#/records") !== 0;
@@ -433,6 +659,7 @@
     mount: function (root) {
       if (!root.querySelector("[data-rc-stage]")) return;   // 타임라인 화면
       engine = createEngine(root);
+      look = createLook(root);
 
       root.addEventListener("click", function (e) {
         var el = e.target.closest("[data-action]");
